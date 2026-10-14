@@ -25,6 +25,18 @@
       ::selection {
         background: rgba(228, 100, 43, 0.25);
       }
+      /* Dezente Scrollleiste, passend zu den Graustufen. */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+      }
+      /* Sichtbarer Tastatur-Fokus (nur bei Tab-Bedienung, nicht beim Klicken). */
+      [role='button']:focus-visible,
+      [role='checkbox']:focus-visible {
+        outline: 2px solid rgba(228, 100, 43, 0.8);
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
     </style>
   </head>
 

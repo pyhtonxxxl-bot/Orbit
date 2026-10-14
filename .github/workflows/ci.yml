@@ -12,12 +12,14 @@ jobs:
       # Keine Online-Abfragen der Expo CLI nötig, macht den Lauf stabiler.
       EXPO_OFFLINE: 1
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Paketversionen passen zu Expo SDK 57
+        run: npx expo install --check
       - run: npm run typecheck
       - run: npm run lint
       - name: Web-Build (PC/Browser)

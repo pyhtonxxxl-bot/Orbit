@@ -57,6 +57,20 @@ export function formatDate(date: Date): string {
   return `${date.getDate()}. ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+/** `12.–18. Oktober 2026`, über Monats-/Jahresgrenzen `28. Dez. – 3. Jan. 2027`. */
+export function formatWeekRange(weekStart: Date): string {
+  const end = addDays(weekStart, 6);
+  if (weekStart.getMonth() === end.getMonth()) {
+    return `${weekStart.getDate()}.–${end.getDate()}. ${MONTHS[end.getMonth()]} ${end.getFullYear()}`;
+  }
+  const short = (d: Date) => {
+    const name = MONTHS[d.getMonth()];
+    return name.length > 4 ? `${name.slice(0, 3)}.` : name;
+  };
+  const startYear = weekStart.getFullYear() !== end.getFullYear() ? ` ${weekStart.getFullYear()}` : '';
+  return `${weekStart.getDate()}. ${short(weekStart)}${startYear} – ${end.getDate()}. ${short(end)} ${end.getFullYear()}`;
+}
+
 /** `09:54` */
 export function formatTime(date: Date): string {
   const h = String(date.getHours()).padStart(2, '0');

@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: colors.checkboxBorder,
+    borderColor: colors.control,
     alignItems: 'center',
     justifyContent: 'center',
   },

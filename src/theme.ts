@@ -5,14 +5,17 @@ export const colors = {
   days: ['#DBDBDB', '#D4D4D4', '#CDCDCD', '#C4C4C4', '#B7B7B7', '#AAAAAA', '#9D9D9D'],
   footer: '#939393',
 
-  ink: '#3A3A3A',
-  inkMuted: 'rgba(0, 0, 0, 0.42)',
-  inkFaint: 'rgba(0, 0, 0, 0.28)',
-  hover: 'rgba(0, 0, 0, 0.04)',
+  // Text als Schwarz mit Transparenz, damit er auf jedem Grau gleich wirkt
+  // und auch auf dem dunkelsten Band (Sonntag) gut lesbar bleibt.
+  ink: '#333333',
+  inkMuted: 'rgba(0, 0, 0, 0.58)', // Datum, Wochenangabe
+  inkFaint: 'rgba(0, 0, 0, 0.45)', // Platzhalter, Zähler, Hinweise
+  control: 'rgba(0, 0, 0, 0.55)', // Checkbox-Rand, ×, Pfeile (mind. 3:1 Kontrast)
+  done: 'rgba(0, 0, 0, 0.45)', // erledigte Aufgaben, mit orangem Strich
+  hover: 'rgba(0, 0, 0, 0.05)',
+  focus: 'rgba(0, 0, 0, 0.35)',
 
   accent: '#E4642B',
-  accentMuted: '#B9866C',
-  checkboxBorder: '#7F7F7F',
   white: '#FFFFFF',
 };
 
@@ -28,11 +31,14 @@ export const space = {
   gutterTablet: 40,
   gutterWide: 48,
   rowY: 28,
-  rowYWide: 22,
+  rowYWide: 18,
 };
 
-/** Ab dieser Fensterbreite (PC, Tablet quer) liegen alle Tage offen nebeneinander: Tag links, Aufgaben rechts. */
+/** Ab dieser Fensterbreite (PC, Tablet quer) liegen alle Tage offen da: Tag links, Aufgaben rechts. */
 export const WIDE_BREAKPOINT = 900;
 
 /** Maximale Inhaltsbreite auf großen Bildschirmen. Die Farbbänder selbst laufen immer über die volle Breite. */
 export const CONTENT_MAX_WIDTH = 1120;
+
+/** Im Handy-Layout auf Tablets: Inhalt nicht über die ganze Breite ziehen. */
+export const COMPACT_MAX_WIDTH = 640;

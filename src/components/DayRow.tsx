@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { formatDate, formatTime } from '../lib/date';
 import type { Task } from '../lib/useTasks';
-import { CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
+import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
 import { TaskItem } from './TaskItem';
 
 type Props = {
@@ -16,6 +16,7 @@ type Props = {
   /** Desktop-Layout: Tag links, Aufgaben rechts, immer offen. */
   wide: boolean;
   gutter: number;
+  canHover: boolean;
   topInset?: number;
   tasks: Task[];
   onPressHeader: () => void;
@@ -33,6 +34,7 @@ export function DayRow({
   expanded,
   wide,
   gutter,
+  canHover,
   topInset = 0,
   tasks,
   onPressHeader,
@@ -40,15 +42,8 @@ export function DayRow({
   onToggle,
   onRemove,
 }: Props) {
-  const [draft, setDraft] = useState('');
   const done = tasks.filter((t) => t.done).length;
-  const showDate = expanded || isToday;
   const rowY = wide ? space.rowYWide : space.rowY;
-
-  const submit = () => {
-    onAdd(draft);
-    setDraft('');
-  };
 
   const dateText = (
     <Text style={[styles.date, wide && styles.dateWide]}>
@@ -57,76 +52,114 @@ export function DayRow({
     </Text>
   );
 
-  // Am PC steht das Datum neben dem Tag, damit die ganze Woche auf einen Bildschirm passt.
-  const header = wide ? (
-    <View style={styles.headerLineWide}>
-      <Text style={[styles.day, styles.dayWide]}>{label.toUpperCase()}</Text>
-      {dateText}
-    </View>
-  ) : (
+  const body = (
     <>
-      <View style={styles.headerLine}>
-        <Text style={styles.day}>{label.toUpperCase()}</Text>
-        {!expanded && tasks.length > 0 && (
-          <Text style={styles.count}>
-            {done}/{tasks.length}
-          </Text>
-        )}
-      </View>
-      {showDate && dateText}
+      {tasks.map((task) => (
+        <TaskItem
+          key={task.id}
+          task={task}
+          canHover={canHover}
+          onToggle={() => onToggle(task.id)}
+          onRemove={() => onRemove(task.id)}
+        />
+      ))}
+      <TaskInput label={label} alone={wide && tasks.length === 0} onAdd={onAdd} />
     </>
   );
 
-  return (
-    <View
-      style={[
-        styles.row,
-        !expanded && styles.rowCollapsed,
-        { backgroundColor: color, paddingTop: rowY + topInset, paddingBottom: rowY },
-      ]}
-    >
-      <View style={[{ paddingHorizontal: gutter }, wide && styles.innerWide]}>
-        {wide ? (
-          <View style={styles.side}>{header}</View>
-        ) : (
-          <Pressable
-            onPress={onPressHeader}
-            accessibilityRole="button"
-            accessibilityState={{ expanded }}
-            style={styles.headerPressable}
-          >
-            {header}
-          </Pressable>
-        )}
-
-        {expanded && (
-          <View style={[styles.body, wide && styles.bodyWide]}>
-            {tasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={() => onToggle(task.id)}
-                onRemove={() => onRemove(task.id)}
-              />
-            ))}
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              onSubmitEditing={submit}
-              // Nach Enter im Feld bleiben, um gleich die nächste Aufgabe zu tippen.
-              // `submitBehavior` gilt auf iOS/Android, `blurOnSubmit` braucht react-native-web.
-              submitBehavior="submit"
-              blurOnSubmit={false}
-              placeholder="Aufgabe hinzufügen…"
-              placeholderTextColor={colors.inkFaint}
-              returnKeyType="done"
-              accessibilityLabel={`Aufgabe für ${label} hinzufügen`}
-              style={[styles.input, wide && tasks.length === 0 && styles.inputAlone]}
-            />
+  // PC: Datum neben dem Tag, damit die ganze Woche auf einen Bildschirm passt.
+  if (wide) {
+    return (
+      <View style={[styles.row, { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }]}>
+        <View style={styles.innerWide}>
+          <View style={styles.side}>
+            <View style={styles.headerLineWide}>
+              {isToday && <View style={styles.todayDot} />}
+              <Text role="heading" style={[styles.day, styles.dayWide]} maxFontSizeMultiplier={1.3}>
+                {label.toUpperCase()}
+              </Text>
+              {dateText}
+            </View>
           </View>
-        )}
+          <View style={styles.bodyWide}>{body}</View>
+        </View>
       </View>
+    );
+  }
+
+  // Handy: das ganze Band ist antippbar und klappt den Tag auf oder zu.
+  return (
+    <View style={[styles.row, { backgroundColor: color }]}>
+      <Pressable
+        onPress={onPressHeader}
+        role="button"
+        aria-expanded={expanded}
+        aria-label={`${label}${tasks.length ? `, ${done} von ${tasks.length} erledigt` : ''}`}
+        style={[
+          styles.compactHeader,
+          !expanded && styles.compactHeaderCollapsed,
+          { paddingTop: rowY + topInset, paddingBottom: expanded ? 0 : rowY, paddingHorizontal: gutter },
+        ]}
+      >
+        <View style={styles.compactInner}>
+          <View style={styles.headerLine}>
+            <Text
+              style={styles.day}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              maxFontSizeMultiplier={1.3}
+            >
+              {label.toUpperCase()}
+            </Text>
+            {!expanded && tasks.length > 0 && (
+              <Text style={styles.count}>
+                {done}/{tasks.length}
+              </Text>
+            )}
+          </View>
+          {(expanded || isToday) && dateText}
+        </View>
+      </Pressable>
+
+      {expanded && (
+        <View style={{ paddingHorizontal: gutter, paddingBottom: rowY }}>
+          <View style={[styles.compactInner, styles.body]}>{body}</View>
+        </View>
+      )}
     </View>
+  );
+}
+
+function TaskInput({ label, alone, onAdd }: { label: string; alone: boolean; onAdd: (title: string) => void }) {
+  const [draft, setDraft] = useState('');
+  const [focused, setFocused] = useState(false);
+  const ref = useRef<TextInput>(null);
+
+  const submit = () => {
+    onAdd(draft);
+    setDraft('');
+  };
+
+  return (
+    <TextInput
+      ref={ref}
+      value={draft}
+      onChangeText={setDraft}
+      onSubmitEditing={submit}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      // Am PC: Escape verlässt das Feld, danach funktionieren ← → und T wieder.
+      onKeyPress={Platform.OS === 'web' ? (e) => e.nativeEvent.key === 'Escape' && ref.current?.blur() : undefined}
+      // Nach Enter im Feld bleiben, um gleich die nächste Aufgabe zu tippen.
+      // `submitBehavior` gilt auf iOS/Android, `blurOnSubmit` braucht react-native-web.
+      submitBehavior="submit"
+      blurOnSubmit={false}
+      placeholder="Aufgabe hinzufügen…"
+      placeholderTextColor={colors.inkFaint}
+      returnKeyType="done"
+      aria-label={`Aufgabe für ${label} hinzufügen`}
+      style={[styles.input, alone && styles.inputAlone, focused && styles.inputFocused]}
+    />
   );
 }
 
@@ -135,9 +168,17 @@ const styles = StyleSheet.create({
   row: {
     flexGrow: 1,
   },
-  // Zugeklappte Tage sitzen mittig in ihrem Band, z. B. auf hohen Tablet-Bildschirmen.
-  rowCollapsed: {
+  compactHeader: {
+    cursor: 'pointer',
+  },
+  // Zugeklappt füllt die Tippfläche das ganze Band, der Inhalt sitzt mittig.
+  compactHeaderCollapsed: {
+    flexGrow: 1,
     justifyContent: 'center',
+  },
+  compactInner: {
+    width: '100%',
+    maxWidth: COMPACT_MAX_WIDTH,
   },
   innerWide: {
     flexDirection: 'row',
@@ -146,16 +187,15 @@ const styles = StyleSheet.create({
     maxWidth: CONTENT_MAX_WIDTH,
     gap: 48,
   },
-  headerPressable: {
-    cursor: 'pointer',
-  },
   side: {
-    width: 460,
+    flexBasis: '40%',
+    maxWidth: 460,
   },
   headerLine: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
+    gap: 12,
   },
   headerLineWide: {
     flexDirection: 'row',
@@ -163,7 +203,18 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     columnGap: 16,
   },
+  // Kleiner oranger Punkt im Seitenrand markiert heute.
+  todayDot: {
+    position: 'absolute',
+    left: -20,
+    top: 19,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+  },
   day: {
+    flexShrink: 1,
     fontFamily: fonts.heavy,
     fontSize: 34,
     lineHeight: 40,
@@ -192,9 +243,10 @@ const styles = StyleSheet.create({
   body: {
     marginTop: 18,
   },
+  // Erste Aufgabe steht auf derselben Grundlinie wie Tagesname und Datum.
   bodyWide: {
     flex: 1,
-    marginTop: 3,
+    marginTop: 10,
     maxWidth: 620,
   },
   input: {
@@ -204,9 +256,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
     outlineWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: 'transparent',
   },
-  // Ohne Aufgaben sitzt das Eingabefeld auf Höhe des Tagesnamens.
   inputAlone: {
-    marginTop: 0,
+    marginTop: 3,
+    paddingBottom: 4,
+  },
+  // Sichtbarer Fokus ohne Browser-Rahmen: eine feine Linie unter dem Feld.
+  inputFocused: {
+    borderBottomColor: colors.focus,
   },
 });

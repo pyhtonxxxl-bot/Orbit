@@ -1,12 +1,12 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LayoutAnimation, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DayRow } from '../components/DayRow';
 import { WeekFooter } from '../components/WeekFooter';
-import { WEEKDAYS, addDays, dateKey, isSameDay, isoWeek, startOfWeek } from '../lib/date';
-import { useLayout } from '../lib/useLayout';
+import { WEEKDAYS, addDays, dateKey, formatWeekRange, isSameDay, isoWeek, startOfWeek } from '../lib/date';
+import { useCanHover, useLayout } from '../lib/useLayout';
 import { useTasks } from '../lib/useTasks';
 import { colors } from '../theme';
 
@@ -22,24 +22,42 @@ function useNow(): Date {
 const tap = () => Haptics.selectionAsync().catch(() => {});
 const animate = () => LayoutAnimation.configureNext(LayoutAnimation.create(220, 'easeInEaseOut', 'opacity'));
 
+/** Platzhalter für „der heutige Tag“, damit der offene Tag nach Mitternacht mitwandert. */
+const TODAY = 'today';
+
 export default function WeekScreen() {
   const insets = useSafeAreaInsets();
   const { wide, gutter } = useLayout();
+  const canHover = useCanHover();
   const now = useNow();
-  const { tasks, add, toggle, remove } = useTasks();
+  const { tasks, loaded, add, toggle, remove } = useTasks();
 
-  const [weekOffset, setWeekOffset] = useState(0);
-  const weekStart = useMemo(() => addDays(startOfWeek(now), weekOffset * 7), [now, weekOffset]);
-  const days = useMemo(() => WEEKDAYS.map((label, i) => ({ label, date: addDays(weekStart, i) })), [weekStart]);
+  // `null` = aktuelle Woche (wandert am Montag um 0 Uhr automatisch weiter), sonst eine fest gewählte Woche.
+  const [pinnedWeek, setPinnedWeek] = useState<Date | null>(null);
+  const currentWeek = startOfWeek(now);
+  const weekStart = pinnedWeek ?? currentWeek;
+  const isCurrentWeek = isSameDay(weekStart, currentWeek);
+  const days = WEEKDAYS.map((label, i) => ({ label, date: addDays(weekStart, i) }));
 
   // Am Handy ist beim Start der heutige Tag aufgeklappt, wie ein aufgeschlagenes Notizbuch.
   // Am PC ist Platz genug, dort sind alle Tage offen.
-  const [expandedKey, setExpandedKey] = useState<string | null>(() => dateKey(now));
+  const [expanded, setExpanded] = useState<string | null>(TODAY);
+  const todayKey = dateKey(now);
+  const expandedKey = expanded === TODAY ? todayKey : expanded;
 
-  const goToWeek = (offset: number) => {
+  // Spiegel von `pinnedWeek` für den Tastatur-Listener, der nur einmal angelegt wird.
+  // Wird ausschließlich in shiftWeek geschrieben, dem einzigen Ort, der die Woche ändert.
+  const pinnedRef = useRef<Date | null>(null);
+
+  const shiftWeek = (weeks: number | 'today') => {
     animate();
-    setWeekOffset(offset);
-    setExpandedKey(offset === 0 ? dateKey(new Date()) : null);
+    const thisWeek = startOfWeek(new Date());
+    const target = weeks === 'today' ? thisWeek : addDays(pinnedRef.current ?? thisWeek, weeks * 7);
+    const backToCurrent = isSameDay(target, thisWeek);
+    pinnedRef.current = backToCurrent ? null : target;
+    setPinnedWeek(pinnedRef.current);
+    // Zurück in der aktuellen Woche ist wieder heute offen, in anderen Wochen erst mal kein Tag.
+    setExpanded(backToCurrent ? TODAY : null);
   };
 
   // Tastatur am PC: ← → wechseln die Woche, T springt zu heute. Eingabefelder schlucken ihre Tasten selbst.
@@ -49,25 +67,44 @@ export default function WeekScreen() {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const target = e.target as HTMLElement | null;
       if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
-      if (e.key === 'ArrowLeft') goToWeek(weekOffset - 1);
-      else if (e.key === 'ArrowRight') goToWeek(weekOffset + 1);
-      else if (e.key === 't' || e.key === 'T') goToWeek(0);
+      if (e.key === 'ArrowLeft') shiftWeek(-1);
+      else if (e.key === 'ArrowRight') shiftWeek(1);
+      else if (e.key === 't' || e.key === 'T') shiftWeek('today');
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  });
+  }, []);
 
   const toggleDay = (key: string) => {
     animate();
     tap();
-    setExpandedKey((current) => (current === key ? null : key));
+    setExpanded((current) => {
+      const resolved = current === TODAY ? dateKey(new Date()) : current;
+      if (resolved === key) return null;
+      return key === dateKey(new Date()) ? TODAY : key;
+    });
   };
 
-  const thursday = addDays(weekStart, 3);
+  // Erst laden, dann zeigen: kein leerer Zwischenzustand und keine Eingabe, bevor die Daten da sind.
+  if (!loaded) return <View style={styles.root} />;
+
+  const footer = (
+    <WeekFooter
+      week={isoWeek(weekStart)}
+      range={formatWeekRange(weekStart)}
+      isCurrentWeek={isCurrentWeek}
+      wide={wide}
+      showKeyHint={canHover}
+      bottomInset={insets.bottom}
+      onPrev={() => shiftWeek(-1)}
+      onNext={() => shiftWeek(1)}
+      onToday={() => shiftWeek('today')}
+    />
+  );
 
   return (
     <View style={styles.root}>
-      {/* Hinter dem Bounce oben/unten die passende Farbe zeigen. */}
+      {/* Hinter dem Bounce oben die passende Farbe zeigen. */}
       <View style={styles.topFill} />
 
       <ScrollView
@@ -75,7 +112,8 @@ export default function WeekScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
-        showsVerticalScrollIndicator={false}
+        // Im Browser gehört eine (dezente) Scrollleiste dazu, sonst sieht man nicht, dass es weitergeht.
+        showsVerticalScrollIndicator={Platform.OS === 'web'}
       >
         {days.map(({ label, date }, i) => {
           const key = dateKey(date);
@@ -86,10 +124,11 @@ export default function WeekScreen() {
               date={date}
               now={now}
               color={colors.days[i]}
-              isToday={isSameDay(date, now)}
+              isToday={key === todayKey}
               expanded={wide || expandedKey === key}
               wide={wide}
               gutter={gutter}
+              canHover={canHover}
               topInset={i === 0 ? insets.top : 0}
               tasks={tasks[key] ?? []}
               onPressHeader={() => toggleDay(key)}
@@ -109,19 +148,12 @@ export default function WeekScreen() {
             />
           );
         })}
-        <WeekFooter
-          week={isoWeek(weekStart)}
-          year={thursday.getFullYear()}
-          isCurrentWeek={weekOffset === 0}
-          wide={wide}
-          bottomInset={insets.bottom}
-          onPrev={() => goToWeek(weekOffset - 1)}
-          onNext={() => goToWeek(weekOffset + 1)}
-          onToday={() => goToWeek(0)}
-        />
+        {/* Am Handy scrollt die Wochen-Navigation mit, am PC bleibt sie unten immer sichtbar. */}
+        {!wide && footer}
       </ScrollView>
+      {wide && footer}
 
-      {/* Leicht deckende Fläche hinter der Statusleiste, damit Uhrzeit & Akku lesbar bleiben. */}
+      {/* Leicht deckende Fläche hinter der Statusleiste, damit Uhrzeit und Akku lesbar bleiben. */}
       <View style={[styles.statusBar, { height: insets.top }]} />
     </View>
   );
