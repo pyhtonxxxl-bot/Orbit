@@ -41,19 +41,25 @@ export function useTasks() {
   const [canSave, setCanSave] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then(async (raw) => {
-        if (raw) {
-          try {
-            setTasks(parseTasks(raw));
-          } catch {
-            // Kaputte Daten sichern, bevor sie beim nächsten Speichern überschrieben werden.
-            await AsyncStorage.setItem(`${STORAGE_KEY}.corrupt`, raw).catch(() => {});
-          }
+    const load = async () => {
+      // Ein zweiter Versuch, falls das Lesen nur kurz hakt.
+      const raw = await AsyncStorage.getItem(STORAGE_KEY).catch(() => AsyncStorage.getItem(STORAGE_KEY));
+      if (raw) {
+        let clean: TaskMap = {};
+        try {
+          clean = parseTasks(raw);
+        } catch {}
+        // Ging beim Einlesen etwas verloren (kaputtes JSON, unbekannte Felder), das Original sichern,
+        // bevor es beim nächsten Speichern überschrieben wird. Jede Sicherung bekommt einen eigenen Schlüssel.
+        if (JSON.stringify(clean) !== raw) {
+          await AsyncStorage.setItem(`${STORAGE_KEY}.backup.${Date.now()}`, raw).catch(() => {});
         }
-        setCanSave(true);
-      })
-      // Lesen fehlgeschlagen: nicht speichern, damit nie `{}` über echte Daten geschrieben wird.
+        setTasks(clean);
+      }
+      setCanSave(true);
+    };
+    // Lesen endgültig fehlgeschlagen: nicht speichern, damit nie `{}` über echte Daten geschrieben wird.
+    load()
       .catch(() => {})
       .finally(() => setLoaded(true));
   }, []);

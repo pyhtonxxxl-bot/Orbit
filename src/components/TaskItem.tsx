@@ -15,6 +15,15 @@ type Props = {
 
 type WebKeyEvent = { key: string; repeat: boolean; target: unknown; currentTarget: unknown; preventDefault(): void };
 
+// Nach einem Löschen rückt die nächste Zeile unter den Mauszeiger. Ein Doppelklick auf × würde sie sonst gleich mitlöschen.
+let lastDeleteAt = 0;
+function removeOnce(onRemove: () => void) {
+  const now = Date.now();
+  if (now - lastDeleteAt < 400) return;
+  lastDeleteAt = now;
+  onRemove();
+}
+
 export function TaskItem({ task, canHover, onToggle, onRemove }: Props) {
   const [rowHovered, setRowHovered] = useState(false);
   const [deleteHovered, setDeleteHovered] = useState(false);
@@ -23,14 +32,20 @@ export function TaskItem({ task, canHover, onToggle, onRemove }: Props) {
   const hovered = canHover && (rowHovered || deleteHovered);
   const showDelete = hovered || deleteFocused;
 
-  // react-native-web löst Pressables nur bei role="button" mit der Leertaste aus. Für die Checkbox selbst nachrüsten.
+  // Tastatur im Browser: Leertaste hakt ab (react-native-web macht das nur für role="button"),
+  // Entf/Backspace löscht. So geht beides auch ohne Maus, z. B. am Tablet mit Tastatur.
   const webKeyProps =
     Platform.OS === 'web'
       ? {
           onKeyDown: (e: WebKeyEvent) => {
-            if (e.key !== ' ' || e.target !== e.currentTarget) return;
-            e.preventDefault();
-            if (!e.repeat) onToggle();
+            if (e.target !== e.currentTarget || e.repeat) return;
+            if (e.key === ' ') {
+              e.preventDefault();
+              onToggle();
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+              e.preventDefault();
+              removeOnce(onRemove);
+            }
           },
         }
       : {};
@@ -49,7 +64,7 @@ export function TaskItem({ task, canHover, onToggle, onRemove }: Props) {
         role="checkbox"
         aria-checked={task.done}
         aria-label={task.title}
-        accessibilityHint={canHover ? undefined : 'Lange drücken zum Löschen'}
+        accessibilityHint={canHover ? 'Entf zum Löschen' : 'Lange drücken zum Löschen'}
       >
         <Checkbox checked={task.done} />
         <Text style={[styles.title, task.done && styles.titleDone]}>{task.title}</Text>
@@ -57,7 +72,7 @@ export function TaskItem({ task, canHover, onToggle, onRemove }: Props) {
 
       {canHover && (
         <Pressable
-          onPress={onRemove}
+          onPress={() => removeOnce(onRemove)}
           onHoverIn={() => setDeleteHovered(true)}
           onHoverOut={() => setDeleteHovered(false)}
           onFocus={() => setDeleteFocused(true)}
@@ -115,8 +130,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     cursor: 'pointer',
   },
+  // Unsichtbar heißt auch nicht antippbar (Touch-Laptops melden sich als Maus-Geräte).
   hidden: {
     opacity: 0,
+    pointerEvents: 'none',
   },
   deleteGlyph: {
     fontFamily: fonts.regular,

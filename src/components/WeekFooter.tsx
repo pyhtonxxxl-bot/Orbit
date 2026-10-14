@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, fonts, space } from '../theme';
 
@@ -7,8 +8,8 @@ type Props = {
   range: string;
   isCurrentWeek: boolean;
   wide: boolean;
-  /** Tastatur-Hinweis nur zeigen, wenn mit Maus/Tastatur gearbeitet wird. */
-  showKeyHint: boolean;
+  /** Maus/Tastatur: Hover-Flächen und Tastatur-Hinweis zeigen. */
+  canHover: boolean;
   bottomInset: number;
   onPrev: () => void;
   onNext: () => void;
@@ -20,7 +21,7 @@ export function WeekFooter({
   range,
   isCurrentWeek,
   wide,
-  showKeyHint,
+  canHover,
   bottomInset,
   onPrev,
   onNext,
@@ -28,31 +29,30 @@ export function WeekFooter({
 }: Props) {
   const nav = (
     <View style={styles.nav}>
-      <Pressable onPress={onPrev} style={styles.arrowButton} role="button" aria-label="Vorherige Woche">
+      <FooterButton onPress={onPrev} label="Vorherige Woche" canHover={canHover} style={styles.arrowButton}>
         <Text style={styles.arrow}>‹</Text>
-      </Pressable>
+      </FooterButton>
       <View style={styles.labelBox}>
         <Text style={styles.label}>KW {week}</Text>
         <Text style={styles.range}>{range}</Text>
       </View>
-      <Pressable onPress={onNext} style={styles.arrowButton} role="button" aria-label="Nächste Woche">
+      <FooterButton onPress={onNext} label="Nächste Woche" canHover={canHover} style={styles.arrowButton}>
         <Text style={styles.arrow}>›</Text>
-      </Pressable>
+      </FooterButton>
     </View>
   );
 
   // Immer vorhanden, in der aktuellen Woche nur unsichtbar: so springen die Pfeile nicht,
   // wenn der Link erscheint, und ein zweiter Klick landet wieder auf demselben Pfeil.
   const todayLink = (
-    <Pressable
+    <FooterButton
       onPress={onToday}
-      disabled={isCurrentWeek}
-      aria-hidden={isCurrentWeek}
-      role="button"
-      style={[styles.todayButton, isCurrentWeek && styles.invisible]}
+      hidden={isCurrentWeek}
+      canHover={canHover}
+      style={[styles.todayButton, !wide && styles.todayButtonCompact]}
     >
       <Text style={styles.today}>Zurück zu heute</Text>
-    </Pressable>
+    </FooterButton>
   );
 
   if (wide) {
@@ -61,26 +61,60 @@ export function WeekFooter({
         <View style={[styles.side, styles.sideLeft]}>{todayLink}</View>
         {nav}
         <View style={[styles.side, styles.sideRight]}>
-          {showKeyHint && <Text style={styles.hint}>← → Woche wechseln · T heute</Text>}
+          {canHover && <Text style={styles.hint}>← → Woche wechseln · T heute</Text>}
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.footer, { paddingBottom: space.rowY + bottomInset }]}>
+    <View style={[styles.footer, styles.footerCompact, { paddingBottom: 8 + bottomInset }]}>
       {nav}
       {todayLink}
     </View>
   );
 }
 
+type FooterButtonProps = {
+  onPress: () => void;
+  canHover: boolean;
+  style: StyleProp<ViewStyle>;
+  children: ReactNode;
+  label?: string;
+  hidden?: boolean;
+};
+
+function FooterButton({ onPress, canHover, style, children, label, hidden = false }: FooterButtonProps) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      disabled={hidden}
+      aria-hidden={hidden}
+      role="button"
+      aria-label={label}
+      style={({ pressed }) => [
+        style,
+        canHover && hovered && !hidden && styles.hovered,
+        pressed && styles.pressed,
+        hidden && styles.invisible,
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   footer: {
     backgroundColor: colors.footer,
-    paddingTop: space.rowY - 8,
     paddingHorizontal: space.gutter,
     alignItems: 'center',
+  },
+  footerCompact: {
+    paddingTop: space.rowY - 8,
   },
   footerWide: {
     flexDirection: 'row',
@@ -113,6 +147,16 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     cursor: 'pointer',
   },
+  hovered: {
+    backgroundColor: colors.hover,
+  },
+  pressed: {
+    opacity: 0.6,
+  },
+  invisible: {
+    opacity: 0,
+    pointerEvents: 'none',
+  },
   arrow: {
     fontFamily: fonts.medium,
     fontSize: 30,
@@ -139,10 +183,11 @@ const styles = StyleSheet.create({
   todayButton: {
     paddingVertical: 12,
     paddingHorizontal: 12,
+    borderRadius: 8,
     cursor: 'pointer',
   },
-  invisible: {
-    opacity: 0,
+  todayButtonCompact: {
+    paddingVertical: 8,
   },
   today: {
     fontFamily: fonts.medium,

@@ -37,6 +37,11 @@
         outline-offset: 2px;
         border-radius: 8px;
       }
+      /* Ganze Tagesbänder (Handy-Layout): Fokusrahmen nach innen, sonst verdeckt ihn das nächste Band. */
+      [role='button'][aria-expanded]:focus-visible {
+        outline-offset: -4px;
+        border-radius: 0;
+      }
     </style>
   </head>
 

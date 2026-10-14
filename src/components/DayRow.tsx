@@ -19,6 +19,9 @@ type Props = {
   canHover: boolean;
   topInset?: number;
   tasks: Task[];
+  /** Halb getippte Aufgabe. Liegt außerhalb, damit sie Zuklappen, Wochenwechsel und Mitternacht übersteht. */
+  draft: string;
+  onDraftChange: (text: string) => void;
   onPressHeader: () => void;
   onAdd: (title: string) => void;
   onToggle: (id: string) => void;
@@ -37,6 +40,8 @@ export function DayRow({
   canHover,
   topInset = 0,
   tasks,
+  draft,
+  onDraftChange,
   onPressHeader,
   onAdd,
   onToggle,
@@ -63,7 +68,13 @@ export function DayRow({
           onRemove={() => onRemove(task.id)}
         />
       ))}
-      <TaskInput label={label} alone={wide && tasks.length === 0} onAdd={onAdd} />
+      <TaskInput
+        label={label}
+        alone={wide && tasks.length === 0}
+        draft={draft}
+        onDraftChange={onDraftChange}
+        onAdd={onAdd}
+      />
     </>
   );
 
@@ -94,7 +105,7 @@ export function DayRow({
         onPress={onPressHeader}
         role="button"
         aria-expanded={expanded}
-        aria-label={`${label}${tasks.length ? `, ${done} von ${tasks.length} erledigt` : ''}`}
+        aria-label={`${label}, ${formatDate(date)}${isToday ? ', heute' : ''}${tasks.length ? `, ${done} von ${tasks.length} erledigt` : ''}`}
         style={[
           styles.compactHeader,
           !expanded && styles.compactHeaderCollapsed,
@@ -122,29 +133,42 @@ export function DayRow({
       </Pressable>
 
       {expanded && (
-        <View style={{ paddingHorizontal: gutter, paddingBottom: rowY }}>
+        // Eigene (wirkungslose) Tippfläche: sonst ordnen Touch-Browser ein Tippen knapp über dem
+        // nächsten Band diesem zu und klappen ungewollt den nächsten Tag auf.
+        <Pressable
+          accessible={false}
+          focusable={false}
+          style={[styles.compactBody, { paddingHorizontal: gutter, paddingBottom: rowY }]}
+        >
           <View style={[styles.compactInner, styles.body]}>{body}</View>
-        </View>
+        </Pressable>
       )}
     </View>
   );
 }
 
-function TaskInput({ label, alone, onAdd }: { label: string; alone: boolean; onAdd: (title: string) => void }) {
-  const [draft, setDraft] = useState('');
+type TaskInputProps = {
+  label: string;
+  alone: boolean;
+  draft: string;
+  onDraftChange: (text: string) => void;
+  onAdd: (title: string) => void;
+};
+
+function TaskInput({ label, alone, draft, onDraftChange, onAdd }: TaskInputProps) {
   const [focused, setFocused] = useState(false);
   const ref = useRef<TextInput>(null);
 
   const submit = () => {
     onAdd(draft);
-    setDraft('');
+    onDraftChange('');
   };
 
   return (
     <TextInput
       ref={ref}
       value={draft}
-      onChangeText={setDraft}
+      onChangeText={onDraftChange}
       onSubmitEditing={submit}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
@@ -175,6 +199,9 @@ const styles = StyleSheet.create({
   compactHeaderCollapsed: {
     flexGrow: 1,
     justifyContent: 'center',
+  },
+  compactBody: {
+    cursor: 'auto',
   },
   compactInner: {
     width: '100%',

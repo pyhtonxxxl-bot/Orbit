@@ -31,6 +31,7 @@ export default function WeekScreen() {
   const canHover = useCanHover();
   const now = useNow();
   const { tasks, loaded, add, toggle, remove } = useTasks();
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   // `null` = aktuelle Woche (wandert am Montag um 0 Uhr automatisch weiter), sonst eine fest gewählte Woche.
   const [pinnedWeek, setPinnedWeek] = useState<Date | null>(null);
@@ -94,7 +95,7 @@ export default function WeekScreen() {
       range={formatWeekRange(weekStart)}
       isCurrentWeek={isCurrentWeek}
       wide={wide}
-      showKeyHint={canHover}
+      canHover={canHover}
       bottomInset={insets.bottom}
       onPrev={() => shiftWeek(-1)}
       onNext={() => shiftWeek(1)}
@@ -104,8 +105,8 @@ export default function WeekScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Hinter dem Bounce oben die passende Farbe zeigen. */}
-      <View style={styles.topFill} />
+      {/* iOS: hinter dem Bounce oben die passende Farbe zeigen. Im Browser gibt es keinen Bounce. */}
+      {Platform.OS !== 'web' && <View style={styles.topFill} />}
 
       <ScrollView
         style={styles.scroll}
@@ -131,6 +132,8 @@ export default function WeekScreen() {
               canHover={canHover}
               topInset={i === 0 ? insets.top : 0}
               tasks={tasks[key] ?? []}
+              draft={drafts[key] ?? ''}
+              onDraftChange={(text) => setDrafts((prev) => ({ ...prev, [key]: text }))}
               onPressHeader={() => toggleDay(key)}
               onAdd={(title) => {
                 animate();
