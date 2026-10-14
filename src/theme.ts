@@ -8,6 +8,7 @@ export const colors = {
   ink: '#3A3A3A',
   inkMuted: 'rgba(0, 0, 0, 0.42)',
   inkFaint: 'rgba(0, 0, 0, 0.28)',
+  hover: 'rgba(0, 0, 0, 0.04)',
 
   accent: '#E4642B',
   accentMuted: '#B9866C',
@@ -24,5 +25,14 @@ export const fonts = {
 
 export const space = {
   gutter: 24,
+  gutterTablet: 40,
+  gutterWide: 48,
   rowY: 28,
+  rowYWide: 22,
 };
+
+/** Ab dieser Fensterbreite (PC, Tablet quer) liegen alle Tage offen nebeneinander: Tag links, Aufgaben rechts. */
+export const WIDE_BREAKPOINT = 900;
+
+/** Maximale Inhaltsbreite auf großen Bildschirmen. Die Farbbänder selbst laufen immer über die volle Breite. */
+export const CONTENT_MAX_WIDTH = 1120;

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <title>%WEB_TITLE%</title>
+    <!-- Reset nach react-native-web-Empfehlung, plus Orbit-Hintergrund, damit beim Laden nichts weiß aufblitzt. -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        background-color: #939393;
+      }
+      body {
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+      ::selection {
+        background: rgba(228, 100, 43, 0.25);
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>Orbit braucht JavaScript.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

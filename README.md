@@ -1,38 +1,77 @@
 # Orbit
 
-Eine minimalistische Life-Tracking-App. Version 1 ist ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/): sieben gestapelte Tagesbänder von hell nach dunkel. Ein Tag wird angetippt, klappt auf und zeigt seine Aufgaben.
+Eine minimalistische Life-Tracking-App fürs Handy **und** den PC. Version 1 ist ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/): sieben gestapelte Tagesbänder von hell nach dunkel.
+
+**Am PC** liegt die ganze Woche offen da, links der Tag, rechts die Aufgaben:
+
+<img src="docs/screens/pc.png" width="820" />
+
+**Am Handy** tippst du einen Tag an, er klappt auf:
 
 | Heute aufgeklappt | Woche |
 | --- | --- |
 | <img src="docs/screens/heute.png" width="260" /> | <img src="docs/screens/woche.png" width="260" /> |
 
-## Was der erste Entwurf kann
+## Was der Planer kann
 
-- Woche von Montag bis Sonntag, beim Start ist der heutige Tag aufgeklappt (mit Datum und Uhrzeit)
-- Tag antippen zum Auf- und Zuklappen, es ist immer nur einer offen
-- Aufgaben hinzufügen (Return), abhaken (Tippen) und löschen (lange drücken)
-- Zugeklappte Tage zeigen den Fortschritt dezent rechts (`1/4`)
-- Unten zwischen den Wochen blättern (KW-Anzeige, „Zurück zu heute“)
-- Wird lokal auf dem Gerät gespeichert (AsyncStorage), mit Haptik-Feedback auf iOS/Android
+- Woche von Montag bis Sonntag, heute mit Datum und Uhrzeit
+- Aufgaben hinzufügen (Enter, das Feld bleibt aktiv für die nächste), abhaken (klicken/tippen), löschen (am PC: × beim Drüberfahren, am Handy: lange drücken)
+- Zwischen den Wochen blättern, am PC auch mit den Tasten **←** **→**, **T** springt zu heute
+- Speichert lokal: am Handy auf dem Gerät, am PC im Browser
+- Ab 900 px Fensterbreite automatisch das PC-Layout, darunter das Handy-Layout
 
-## Starten
+## Am PC starten
+
+Einmalig [Node.js](https://nodejs.org/) (LTS-Version) installieren. Dann im Projektordner:
 
 ```bash
 npm install
-npx expo start
+npm run web
 ```
 
-Dann den QR-Code mit der **Expo Go**-App auf dem iPhone scannen. Im Browser geht es mit `npx expo start --web`.
+Danach öffnet sich Orbit im Browser, meist unter http://localhost:8081.
+
+## Am Handy starten
+
+```bash
+npm run start
+```
+
+Den QR-Code mit der App **Expo Go** (iPhone/Android) scannen.
+
+## Mit Claude Code weiterbauen
+
+Das Repo ist für [Claude Code](https://claude.ai/code) eingerichtet:
+
+- **`CLAUDE.md`** enthält die Projektregeln: Design-Prinzipien, beide Layouts (Handy + PC), Deutsch als UI-Sprache und die Prüfbefehle. Claude liest sie bei jeder Session automatisch.
+- **`.claude/hooks/session-start.sh`** installiert in Cloud-Sessions (claude.ai/code) automatisch alle Pakete.
+- **CI** (`.github/workflows/ci.yml`) prüft jeden Pull Request: Typecheck, Lint, Web-Build.
+
+Beispiel-Prompts für die nächsten Schritte:
+
+> „Füge eine minimalistische Navigation hinzu: Woche · Training · Essen. Gleicher Graustufen-Look, am PC und am Handy.“
+
+> „Baue den Trainingsplan-Editor: Pläne mit Übungen, Sätzen, Wiederholungen und Gewicht. Übungen sollen sich per Drag & Drop sortieren lassen.“
+
+## Prüfen
+
+```bash
+npm run typecheck   # TypeScript
+npm run lint        # ESLint
+npm run build:web   # Web-Build nach dist/
+```
 
 ## Struktur
 
 ```
-App.tsx                    Fonts laden, Safe Area, Startscreen
-src/theme.ts               Farben, Schrift, Abstände (hier wird der Look justiert)
+src/app/_layout.tsx        Fonts laden, Navigation (Expo Router)
+src/app/index.tsx          Der Wochen-Planer
+src/components/            DayRow, TaskItem, Checkbox, WeekFooter
 src/lib/date.ts            Wochen- und Datumslogik (deutsch)
 src/lib/useTasks.ts        Aufgaben-State und Speicherung
-src/screens/WeekScreen.tsx Der Wochen-Stack
-src/components/            DayRow, TaskItem, Checkbox, WeekFooter
+src/lib/useLayout.ts       Handy- oder PC-Layout je nach Fensterbreite
+src/theme.ts               Farben, Schrift, Abstände (hier wird der Look justiert)
+public/index.html          HTML-Hülle für den Browser
 ```
 
 Was als Nächstes kommt und welche Skills du dafür brauchst, steht in [docs/ROADMAP.md](docs/ROADMAP.md).

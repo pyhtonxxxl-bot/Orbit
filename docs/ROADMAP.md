@@ -49,10 +49,10 @@
 
 ## Nächste Schritte
 
-1. **Expo Router + Tab-Navigation**: minimale Tabs *Woche · Training · Essen*
+1. **Tab-Navigation** (Expo Router ist schon eingerichtet): minimale Tabs *Woche · Training · Essen*, am PC als schlanke Seitenleiste
 2. **Training**: Pläne anlegen, Übungen per Drag & Drop sortieren, im Workout Sätze abhaken (gleiche Checkbox wie im Planer)
 3. **Essen**: Mahlzeiten pro Tag, Suche via Open Food Facts, Barcode-Scan, Tagesziel als dünner Balken
-4. **Reanimated** für weichere Animationen und Swipe zwischen Wochen
+4. **Reanimated** (schon installiert) für weichere Animationen und Swipe zwischen Wochen
 5. **Dark Mode**: Palette von fast Schwarz zu Dunkelgrau
 6. **SQLite** statt AsyncStorage, sobald die Datenmenge wächst
-7. **EAS Build → TestFlight**
+7. **EAS Build → TestFlight** fürs iPhone, **GitHub Pages / Vercel** für eine PC-Version ohne Installation
