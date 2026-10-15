@@ -31,6 +31,15 @@ npm run web
 
 Danach öffnet sich Orbit im Browser, meist unter http://localhost:8081.
 
+## Online stellen (Render)
+
+Orbit im Browser besteht nur aus fertigen Dateien (`dist/`), dafür braucht es keinen Server. Auf Render deshalb als **Static Site** anlegen, nicht als Web Service: Static Sites sind kostenlos, schlafen nie ein und zeigen keinen „Service waking up“-Bildschirm.
+
+1. [Render Dashboard](https://dashboard.render.com/) → **New** → **Blueprint** → dieses Repo wählen. Render liest `render.yaml` und legt die Static Site „orbit“ an (Build: `npm ci && npm run build:web`, Ordner: `dist`).
+2. Einen alten **Web Service** für Orbit löschen (Service → Settings → Delete), sonst bleibt dessen Adresse beim Lade-Bildschirm hängen.
+
+Jeder Push auf `main` baut die Seite automatisch neu.
+
 ## Am Handy starten
 
 ```bash
