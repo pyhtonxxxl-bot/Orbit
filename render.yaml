@@ -1,0 +1,21 @@
+# Render-Blueprint: Orbit als statische Website (kostenlos, schläft nie ein, kein Lade-Bildschirm).
+# Einrichten: Render Dashboard → New → Blueprint → dieses Repo wählen.
+services:
+  - type: web
+    runtime: static
+    name: orbit
+    branch: main
+    buildCommand: npm ci && npm run build:web
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Spart die Online-Abfragen der Expo CLI beim Bauen.
+      - key: EXPO_OFFLINE
+        value: "1"
+    routes:
+      # Single-Page-App: jede Adresse liefert index.html, Expo Router übernimmt.
+      - type: rewrite
+        source: /*
+        destination: /index.html
