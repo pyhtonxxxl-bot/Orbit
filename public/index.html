@@ -5,8 +5,15 @@
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>%WEB_TITLE%</title>
+    <!-- Orbit hat ein eigenes helles Design: Browser dürfen es nicht automatisch abdunkeln
+         (Chrome/Arc „Auto Dark Mode“, Erweiterung Dark Reader). -->
+    <meta name="color-scheme" content="only light" />
+    <meta name="darkreader-lock" />
     <!-- Reset nach react-native-web-Empfehlung, plus Orbit-Hintergrund, damit beim Laden nichts weiß aufblitzt. -->
     <style id="expo-reset">
+      :root {
+        color-scheme: only light;
+      }
       html,
       body {
         height: 100%;
