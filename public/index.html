@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <title>%WEB_TITLE%</title>
+    <!-- Reset nach react-native-web-Empfehlung, plus Orbit-Hintergrund, damit beim Laden nichts weiß aufblitzt. -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        background-color: #939393;
+      }
+      body {
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+      ::selection {
+        background: rgba(228, 100, 43, 0.25);
+      }
+      /* Dezente Scrollleiste, passend zu den Graustufen. */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+      }
+      /* Sichtbarer Tastatur-Fokus (nur bei Tab-Bedienung, nicht beim Klicken). */
+      [role='button']:focus-visible,
+      [role='checkbox']:focus-visible {
+        outline: 2px solid rgba(228, 100, 43, 0.8);
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
+      /* Ganze Tagesbänder (Handy-Layout): Fokusrahmen nach innen, sonst verdeckt ihn das nächste Band. */
+      [role='button'][aria-expanded]:focus-visible {
+        outline-offset: -4px;
+        border-radius: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>Orbit braucht JavaScript.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
