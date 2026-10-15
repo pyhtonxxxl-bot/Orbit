@@ -22,7 +22,8 @@ type Props = {
   /** Halb getippte Aufgabe. Liegt außerhalb, damit sie Zuklappen, Wochenwechsel und Mitternacht übersteht. */
   draft: string;
   onDraftChange: (text: string) => void;
-  onPressHeader: () => void;
+  /** Antippen klappt den Tag auf/zu (Handy). Ohne Handler bleibt der Kopf ein fester Titel, z. B. auf der Startseite. */
+  onPressHeader?: () => void;
   onAdd: (title: string) => void;
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
@@ -98,39 +99,43 @@ export function DayRow({
     );
   }
 
+  const headerStyle = [
+    styles.compactHeader,
+    !expanded && styles.compactHeaderCollapsed,
+    { paddingTop: rowY + topInset, paddingBottom: expanded ? 0 : rowY, paddingHorizontal: gutter },
+  ];
+  const headerContent = (
+    <View style={styles.compactInner}>
+      <View style={styles.headerLine}>
+        <Text style={styles.day} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3}>
+          {label.toUpperCase()}
+        </Text>
+        {!expanded && tasks.length > 0 && (
+          <Text style={styles.count}>
+            {done}/{tasks.length}
+          </Text>
+        )}
+      </View>
+      {(expanded || isToday) && dateText}
+    </View>
+  );
+
   // Handy: das ganze Band ist antippbar und klappt den Tag auf oder zu.
   return (
     <View style={[styles.row, { backgroundColor: color }]}>
-      <Pressable
-        onPress={onPressHeader}
-        role="button"
-        aria-expanded={expanded}
-        aria-label={`${label}, ${formatDate(date)}${isToday ? ', heute' : ''}${tasks.length ? `, ${done} von ${tasks.length} erledigt` : ''}`}
-        style={[
-          styles.compactHeader,
-          !expanded && styles.compactHeaderCollapsed,
-          { paddingTop: rowY + topInset, paddingBottom: expanded ? 0 : rowY, paddingHorizontal: gutter },
-        ]}
-      >
-        <View style={styles.compactInner}>
-          <View style={styles.headerLine}>
-            <Text
-              style={styles.day}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.3}
-            >
-              {label.toUpperCase()}
-            </Text>
-            {!expanded && tasks.length > 0 && (
-              <Text style={styles.count}>
-                {done}/{tasks.length}
-              </Text>
-            )}
-          </View>
-          {(expanded || isToday) && dateText}
-        </View>
-      </Pressable>
+      {onPressHeader ? (
+        <Pressable
+          onPress={onPressHeader}
+          role="button"
+          aria-expanded={expanded}
+          aria-label={`${label}, ${formatDate(date)}${isToday ? ', heute' : ''}${tasks.length ? `, ${done} von ${tasks.length} erledigt` : ''}`}
+          style={headerStyle}
+        >
+          {headerContent}
+        </Pressable>
+      ) : (
+        <View style={[headerStyle, styles.staticHeader]}>{headerContent}</View>
+      )}
 
       {expanded && (
         // Eigene (wirkungslose) Tippfläche: sonst ordnen Touch-Browser ein Tippen knapp über dem
@@ -194,6 +199,9 @@ const styles = StyleSheet.create({
   },
   compactHeader: {
     cursor: 'pointer',
+  },
+  staticHeader: {
+    cursor: 'auto',
   },
   // Zugeklappt füllt die Tippfläche das ganze Band, der Inhalt sitzt mittig.
   compactHeaderCollapsed: {

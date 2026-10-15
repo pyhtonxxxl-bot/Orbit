@@ -17,6 +17,17 @@ export const colors = {
 
   accent: '#E4642B',
   white: '#FFFFFF',
+
+  // Intro & Entsperren: weißes Papier, dunkle Wisch-Leiste wie ein Hardware-Schalter.
+  paper: '#FFFFFF',
+  pill: '#2B2B2B',
+  pillTrack: 'rgba(255, 255, 255, 0.35)',
+
+  // Seitenleiste: eine Spur heller als Montag, damit sie wie ein eigenes Blatt wirkt.
+  sidebar: '#E9E9E9',
+  sidebarLine: 'rgba(0, 0, 0, 0.07)',
+  active: 'rgba(0, 0, 0, 0.07)',
+  backdrop: 'rgba(0, 0, 0, 0.28)',
 };
 
 export const fonts = {
@@ -34,8 +45,12 @@ export const space = {
   rowYWide: 18,
 };
 
-/** Ab dieser Fensterbreite (PC, Tablet quer) liegen alle Tage offen da: Tag links, Aufgaben rechts. */
-export const WIDE_BREAKPOINT = 900;
+/** Ab dieser Inhaltsbreite (PC, Tablet quer) liegen alle Tage offen da: Tag links, Aufgaben rechts. */
+export const WIDE_BREAKPOINT = 860;
+
+/** Ab dieser Fensterbreite steht die Seitenleiste fest links, darunter öffnet sie sich über das Menü-Symbol. */
+export const SIDEBAR_BREAKPOINT = 1100;
+export const SIDEBAR_WIDTH = 232;
 
 /** Maximale Inhaltsbreite auf großen Bildschirmen. Die Farbbänder selbst laufen immer über die volle Breite. */
 export const CONTENT_MAX_WIDTH = 1120;

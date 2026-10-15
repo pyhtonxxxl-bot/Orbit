@@ -1,14 +1,16 @@
-import * as Haptics from 'expo-haptics';
-import { useEffect, useRef, useState } from 'react';
-import { LayoutAnimation, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DayRow } from '../components/DayRow';
-import { WeekFooter } from '../components/WeekFooter';
-import { WEEKDAYS, addDays, dateKey, formatWeekRange, isSameDay, isoWeek, startOfWeek } from '../lib/date';
+import { Icon, type IconName } from '../components/Icon';
+import { PageHeader } from '../components/shell/PageHeader';
+import { WEEKDAYS, addDays, dateKey, formatDate, startOfWeek } from '../lib/date';
+import { useShell } from '../lib/shell';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useTasks } from '../lib/useTasks';
-import { colors } from '../theme';
+import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, colors, fonts, space } from '../theme';
 
 function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
@@ -19,146 +21,182 @@ function useNow(): Date {
   return now;
 }
 
-const tap = () => Haptics.selectionAsync().catch(() => {});
-const animate = () => LayoutAnimation.configureNext(LayoutAnimation.create(220, 'easeInEaseOut', 'opacity'));
+function greeting(date: Date): string {
+  const h = date.getHours();
+  if (h >= 5 && h < 11) return 'Guten Morgen';
+  if (h >= 11 && h < 17) return 'Guten Tag';
+  if (h >= 17 && h < 23) return 'Guten Abend';
+  return 'Gute Nacht';
+}
 
-/** Platzhalter für „der heutige Tag“, damit der offene Tag nach Mitternacht mitwandert. */
-const TODAY = 'today';
-
-export default function WeekScreen() {
+/** Startseite: Begrüßung, die Aufgaben von heute und alle Werkzeuge als Bänder. */
+export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { wide, gutter } = useLayout();
   const canHover = useCanHover();
+  const shell = useShell();
+  const hasHeader = !!shell && !shell.sidebarDocked;
   const now = useNow();
   const { tasks, loaded, add, toggle, remove } = useTasks();
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [draft, setDraft] = useState('');
 
-  // `null` = aktuelle Woche (wandert am Montag um 0 Uhr automatisch weiter), sonst eine fest gewählte Woche.
-  const [pinnedWeek, setPinnedWeek] = useState<Date | null>(null);
-  const currentWeek = startOfWeek(now);
-  const weekStart = pinnedWeek ?? currentWeek;
-  const isCurrentWeek = isSameDay(weekStart, currentWeek);
-  const days = WEEKDAYS.map((label, i) => ({ label, date: addDays(weekStart, i) }));
-
-  // Am Handy ist beim Start der heutige Tag aufgeklappt, wie ein aufgeschlagenes Notizbuch.
-  // Am PC ist Platz genug, dort sind alle Tage offen.
-  const [expanded, setExpanded] = useState<string | null>(TODAY);
-  const todayKey = dateKey(now);
-  const expandedKey = expanded === TODAY ? todayKey : expanded;
-
-  // Spiegel von `pinnedWeek` für den Tastatur-Listener, der nur einmal angelegt wird.
-  // Wird ausschließlich in shiftWeek geschrieben, dem einzigen Ort, der die Woche ändert.
-  const pinnedRef = useRef<Date | null>(null);
-
-  const shiftWeek = (weeks: number | 'today') => {
-    animate();
-    const thisWeek = startOfWeek(new Date());
-    const target = weeks === 'today' ? thisWeek : addDays(pinnedRef.current ?? thisWeek, weeks * 7);
-    const backToCurrent = isSameDay(target, thisWeek);
-    pinnedRef.current = backToCurrent ? null : target;
-    setPinnedWeek(pinnedRef.current);
-    // Zurück in der aktuellen Woche ist wieder heute offen, in anderen Wochen erst mal kein Tag.
-    setExpanded(backToCurrent ? TODAY : null);
-  };
-
-  // Tastatur am PC: ← → wechseln die Woche, T springt zu heute. Eingabefelder schlucken ihre Tasten selbst.
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
-      if (e.key === 'ArrowLeft') shiftWeek(-1);
-      else if (e.key === 'ArrowRight') shiftWeek(1);
-      else if (e.key === 't' || e.key === 'T') shiftWeek('today');
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, []);
-
-  const toggleDay = (key: string) => {
-    animate();
-    tap();
-    setExpanded((current) => {
-      const resolved = current === TODAY ? dateKey(new Date()) : current;
-      if (resolved === key) return null;
-      return key === dateKey(new Date()) ? TODAY : key;
-    });
-  };
-
-  // Erst laden, dann zeigen: kein leerer Zwischenzustand und keine Eingabe, bevor die Daten da sind.
   if (!loaded) return <View style={styles.root} />;
 
-  const footer = (
-    <WeekFooter
-      week={isoWeek(weekStart)}
-      range={formatWeekRange(weekStart)}
-      isCurrentWeek={isCurrentWeek}
-      wide={wide}
-      canHover={canHover}
-      bottomInset={insets.bottom}
-      onPrev={() => shiftWeek(-1)}
-      onNext={() => shiftWeek(1)}
-      onToday={() => shiftWeek('today')}
-    />
+  const todayKey = dateKey(now);
+  const today = tasks[todayKey] ?? [];
+  const todayDone = today.filter((t) => t.done).length;
+  const weekStart = startOfWeek(now);
+  const weekOpen = WEEKDAYS.reduce(
+    (sum, _, i) => sum + (tasks[dateKey(addDays(weekStart, i))] ?? []).filter((t) => !t.done).length,
+    0,
   );
+  const weekday = WEEKDAYS[(now.getDay() + 6) % 7];
+
+  const summary =
+    today.length === 0
+      ? 'Für heute ist noch nichts geplant.'
+      : `Heute ${today.length} ${today.length === 1 ? 'Aufgabe' : 'Aufgaben'}, ${todayDone} erledigt.`;
+
+  const rowY = wide ? space.rowYWide : space.rowY;
 
   return (
     <View style={styles.root}>
-      {/* iOS: hinter dem Bounce oben die passende Farbe zeigen. Im Browser gibt es keinen Bounce. */}
-      {Platform.OS !== 'web' && <View style={styles.topFill} />}
-
+      <PageHeader title="Startseite" color={colors.days[0]} gutter={gutter} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
-        // Im Browser gehört eine (dezente) Scrollleiste dazu, sonst sieht man nicht, dass es weitergeht.
         showsVerticalScrollIndicator={Platform.OS === 'web'}
       >
-        {days.map(({ label, date }, i) => {
-          const key = dateKey(date);
-          return (
-            <DayRow
-              key={key}
-              label={label}
-              date={date}
-              now={now}
-              color={colors.days[i]}
-              isToday={key === todayKey}
-              expanded={wide || expandedKey === key}
-              wide={wide}
-              gutter={gutter}
-              canHover={canHover}
-              topInset={i === 0 ? insets.top : 0}
-              tasks={tasks[key] ?? []}
-              draft={drafts[key] ?? ''}
-              onDraftChange={(text) => setDrafts((prev) => ({ ...prev, [key]: text }))}
-              onPressHeader={() => toggleDay(key)}
-              onAdd={(title) => {
-                animate();
-                add(key, title);
-              }}
-              onToggle={(id) => {
-                tap();
-                toggle(key, id);
-              }}
-              onRemove={(id) => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-                animate();
-                remove(key, id);
-              }}
-            />
-          );
-        })}
-        {/* Am Handy scrollt die Wochen-Navigation mit, am PC bleibt sie unten immer sichtbar. */}
-        {!wide && footer}
-      </ScrollView>
-      {wide && footer}
+        {/* Begrüßung */}
+        <View
+          style={[
+            styles.band,
+            {
+              backgroundColor: colors.days[0],
+              paddingTop: (wide ? 40 : rowY) + (hasHeader ? 0 : insets.top),
+              paddingBottom: wide ? 36 : rowY,
+              paddingHorizontal: gutter,
+            },
+          ]}
+        >
+          <View style={[styles.inner, wide ? styles.innerWide : styles.innerCompact]}>
+            <View style={wide ? styles.side : undefined}>
+              <Text style={[styles.welcome, wide && styles.welcomeWide]} role="heading" maxFontSizeMultiplier={1.3}>
+                WILLKOMMEN
+              </Text>
+              <Text style={styles.greeting}>
+                {greeting(now)}. {weekday}, {formatDate(now)}
+              </Text>
+            </View>
+            <View style={wide ? styles.bodyWide : styles.summaryCompact}>
+              <Text style={styles.summary}>{summary}</Text>
+              <Text style={styles.summaryMuted}>
+                Diese Woche {weekOpen === 0 ? 'ist alles erledigt.' : `${weekOpen} offen.`}
+              </Text>
+            </View>
+          </View>
+        </View>
 
-      {/* Leicht deckende Fläche hinter der Statusleiste, damit Uhrzeit und Akku lesbar bleiben. */}
-      <View style={[styles.statusBar, { height: insets.top }]} />
+        {/* Heute: dieselbe Tageszeile wie im Wochenplaner, immer offen */}
+        <DayRow
+          label="Heute"
+          date={now}
+          now={now}
+          color={colors.days[1]}
+          isToday
+          expanded
+          wide={wide}
+          gutter={gutter}
+          canHover={canHover}
+          tasks={today}
+          draft={draft}
+          onDraftChange={setDraft}
+          onAdd={(title) => add(todayKey, title)}
+          onToggle={(id) => toggle(todayKey, id)}
+          onRemove={(id) => remove(todayKey, id)}
+        />
+
+        <ToolBand
+          name="Woche"
+          icon="week"
+          description={weekOpen === 0 ? 'Wochenplaner' : `Wochenplaner · ${weekOpen} offen`}
+          color={colors.days[2]}
+          wide={wide}
+          gutter={gutter}
+          canHover={canHover}
+          onPress={() => router.navigate('/woche')}
+        />
+        <ToolBand
+          name="Training"
+          icon="training"
+          description="Trainingspläne · kommt bald"
+          color={colors.days[3]}
+          wide={wide}
+          gutter={gutter}
+          canHover={canHover}
+        />
+        <ToolBand
+          name="Ernährung"
+          icon="food"
+          description="Essen tracken · kommt bald"
+          color={colors.days[4]}
+          wide={wide}
+          gutter={gutter}
+          canHover={canHover}
+        />
+
+        <View style={[styles.footer, { paddingBottom: 24 + insets.bottom }]}>
+          <Text style={styles.footerText}>Startseite anpassen · kommt bald</Text>
+        </View>
+      </ScrollView>
     </View>
+  );
+}
+
+type ToolBandProps = {
+  name: string;
+  icon: IconName;
+  description: string;
+  color: string;
+  wide: boolean;
+  gutter: number;
+  canHover: boolean;
+  /** Ohne Handler ist das Werkzeug noch nicht verfügbar. */
+  onPress?: () => void;
+};
+
+function ToolBand({ name, icon, description, color, wide, gutter, canHover, onPress }: ToolBandProps) {
+  const [hovered, setHovered] = useState(false);
+  const soon = !onPress;
+  const rowY = wide ? space.rowYWide : space.rowY;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={soon}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      role={soon ? undefined : 'link'}
+      aria-label={soon ? `${name}, kommt bald` : `${name} öffnen`}
+      aria-disabled={soon}
+      style={[styles.band, styles.tool, { backgroundColor: color, paddingVertical: rowY + 4, paddingHorizontal: gutter }]}
+    >
+      {canHover && hovered && !soon && <View style={styles.toolHover} />}
+      <View style={[styles.inner, wide ? styles.innerWide : styles.innerCompact, soon && styles.soon]}>
+        <View style={[styles.toolHead, wide && styles.side]}>
+          <Icon name={icon} size={wide ? 30 : 26} color={colors.ink} strokeWidth={1.6} />
+          <Text style={[styles.toolName, wide && styles.toolNameWide]} maxFontSizeMultiplier={1.3}>
+            {name.toUpperCase()}
+          </Text>
+        </View>
+        <View style={[styles.toolBody, wide && styles.bodyWide]}>
+          <Text style={styles.toolDescription}>{description}</Text>
+          {!soon && <Icon name="arrow" size={22} color={colors.control} />}
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -167,27 +205,120 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.footer,
   },
-  topFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: colors.days[0],
-  },
   scroll: {
     flex: 1,
   },
   content: {
     flexGrow: 1,
   },
-  statusBar: {
+  band: {
+    flexGrow: 1,
+  },
+  inner: {
+    width: '100%',
+  },
+  innerCompact: {
+    maxWidth: COMPACT_MAX_WIDTH,
+  },
+  innerWide: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    maxWidth: CONTENT_MAX_WIDTH,
+    gap: 48,
+  },
+  side: {
+    flexBasis: '40%',
+    maxWidth: 460,
+  },
+  bodyWide: {
+    flex: 1,
+    maxWidth: 620,
+  },
+  welcome: {
+    fontFamily: fonts.heavy,
+    fontSize: 40,
+    lineHeight: 46,
+    letterSpacing: 0.3,
+    color: colors.ink,
+  },
+  welcomeWide: {
+    fontSize: 48,
+    lineHeight: 54,
+  },
+  greeting: {
+    marginTop: 8,
+    fontFamily: fonts.regular,
+    fontSize: 17,
+    color: colors.inkMuted,
+  },
+  summaryCompact: {
+    marginTop: 18,
+  },
+  summary: {
+    fontFamily: fonts.medium,
+    fontSize: 17,
+    lineHeight: 24,
+    color: colors.ink,
+  },
+  summaryMuted: {
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.inkMuted,
+  },
+  tool: {
+    cursor: 'pointer',
+    justifyContent: 'center',
+  },
+  toolHover: {
     position: 'absolute',
     top: 0,
-    left: 0,
     right: 0,
-    backgroundColor: colors.days[0],
-    opacity: 0.94,
-    pointerEvents: 'none',
+    bottom: 0,
+    left: 0,
+    backgroundColor: colors.hover,
+  },
+  soon: {
+    opacity: 0.55,
+  },
+  toolHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  toolName: {
+    fontFamily: fonts.heavy,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: 0.3,
+    color: colors.ink,
+  },
+  toolNameWide: {
+    fontSize: 34,
+    lineHeight: 40,
+  },
+  toolBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginTop: 6,
+  },
+  toolDescription: {
+    flexShrink: 1,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    color: colors.inkMuted,
+  },
+  footer: {
+    backgroundColor: colors.footer,
+    paddingTop: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    letterSpacing: 0.5,
+    color: colors.inkMuted,
   },
 });

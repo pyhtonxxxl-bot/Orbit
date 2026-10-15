@@ -1,6 +1,10 @@
 # Orbit
 
-Eine minimalistische Life-Tracking-App fürs Handy **und** den PC. Version 1 ist ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/): sieben gestapelte Tagesbänder von hell nach dunkel.
+Eine minimalistische Life-Tracking-App fürs Handy **und** den PC, dein privater Manager statt zehn einzelner Apps.
+
+- **Start:** weißer Screen, dann eine Foto-Collage von der Marmorstatue bis zum echten Auge und zurück. Danach entsperrst du Orbit: am Handy die Leiste nach rechts wischen, am PC die **Leertaste gedrückt halten**.
+- **Startseite:** Begrüßung, deine Aufgaben von heute und alle Werkzeuge. Die Seitenleiste (am Handy über das Menü-Symbol) führt zu Startseite und Werkzeugen.
+- **Woche:** ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/), sieben gestapelte Tagesbänder von hell nach dunkel.
 
 **Am PC** liegt die ganze Woche offen da, links der Tag, rechts die Aufgaben:
 
@@ -73,8 +77,12 @@ npm run build:web   # Web-Build nach dist/
 ## Struktur
 
 ```
-src/app/_layout.tsx        Fonts laden, Navigation (Expo Router)
-src/app/index.tsx          Der Wochen-Planer
+src/app/_layout.tsx        Fonts, Intro + Sperrbildschirm, App-Hülle
+src/app/index.tsx          Startseite (Willkommen, heute, Werkzeuge)
+src/app/woche.tsx          Der Wochen-Planer
+src/components/gate/       Intro-Collage und Wisch-Leiste zum Entsperren
+src/components/shell/      Seitenleiste, Schublade fürs Handy, Kopfzeile
+assets/intro/              Bilder der Intro-Collage (mit Higgsfield erzeugt)
 src/components/            DayRow, TaskItem, Checkbox, WeekFooter
 src/lib/date.ts            Wochen- und Datumslogik (deutsch)
 src/lib/useTasks.ts        Aufgaben-State und Speicherung
