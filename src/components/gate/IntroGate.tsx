@@ -24,11 +24,12 @@ type Layer = {
 };
 
 // Von der Statue zum echten Auge: jede Ebene ist näher dran und realistischer.
+// Die Ausschnitte sitzen so, dass das Auge jeder Ebene ungefähr über dem Statuen-Auge liegt (bei 57 % / 38 %).
 const LAYERS: Layer[] = [
   { source: require('../../../assets/intro/1-statue.jpg'), rect: { left: 0, top: 0, width: 100, height: 100 } },
-  { source: require('../../../assets/intro/2-statue-auge.jpg'), rect: { left: 30, top: 9, width: 70, height: 72 } },
-  { source: require('../../../assets/intro/3-auge.jpg'), rect: { left: 20, top: 15, width: 78, height: 64 } },
-  { source: require('../../../assets/intro/4-iris.jpg'), rect: { left: 5, top: 42, width: 42, height: 54 } },
+  { source: require('../../../assets/intro/2-statue-auge.jpg'), rect: { left: 32, top: 2, width: 62, height: 66 } },
+  { source: require('../../../assets/intro/3-auge.jpg'), rect: { left: 20, top: 0, width: 72, height: 72 } },
+  { source: require('../../../assets/intro/4-iris.jpg'), rect: { left: 4, top: 44, width: 46, height: 52 } },
 ];
 
 // Wie viele Ebenen pro Schritt zu sehen sind, und wie lange: weiß → aufbauen → wieder abbauen.
