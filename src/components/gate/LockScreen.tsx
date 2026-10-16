@@ -22,6 +22,8 @@ const IMAGE_ASPECT = 1344 / 752;
 const FACE_X = 0.3;
 const FACE_Y = 0.42;
 const LOAD_TIMEOUT_MS = 1500;
+// Höhe von Wisch-Leiste, Abstand und Hinweis darunter.
+const CONTROL_H = 68 + 14 + 18;
 
 type Props = {
   /** App-Start: blendet aus Weiß ein. Nach „Sperren“: gleitet von oben herein. */
@@ -93,13 +95,20 @@ export function LockScreen({ entrance, onUnlock, onGone }: Props) {
     imgW = imgH * IMAGE_ASPECT;
     imgTop = 0;
   } else {
-    imgH = Math.max(width / IMAGE_ASPECT, height);
+    // Füllt den Bildschirm, wächst bei fast quadratischen Fenstern (4:3, iPad) aber nicht weiter mit der Höhe,
+    // sonst rückt der Kopf an ORBIT heran. Unten läuft das Bild ohnehin in den Hintergrund aus.
+    imgH = Math.max(width / IMAGE_ASPECT, Math.min(height, width * 0.7));
     imgW = imgH * IMAGE_ASPECT;
     imgTop = clamp(height * 0.45 - FACE_Y * imgH, height - imgH, 0);
   }
   const imgLeft = clamp(width * (portrait ? 0.42 : 0.28) - FACE_X * imgW, width - imgW, 0);
 
-  const titleSize = portrait ? clamp(width * 0.22, 56, 132) : clamp(width * 0.1, 56, Math.min(190, height * 0.24));
+  // Hochformat: ORBIT steht immer über der Leiste, auch in fast quadratischen Fenstern (z. B. Android-Splitscreen).
+  const controlTop = height - insets.bottom - 20 - CONTROL_H;
+  const titleSize = portrait
+    ? Math.min(clamp(width * 0.22, 56, 132), Math.max(40, (controlTop - height * 0.3) / 1.05))
+    : clamp(width * 0.1, 56, Math.min(190, height * 0.24));
+  const titleTop = Math.min(imgH * 0.84, height * 0.56, controlTop - titleSize * 1.05 - 16);
   const translateY = slide.interpolate({ inputRange: [-1, 0], outputRange: [-height, 0] });
   const lift = appear.interpolate({ inputRange: [0, 1], outputRange: [10, 0] });
 
@@ -143,7 +152,7 @@ export function LockScreen({ entrance, onUnlock, onGone }: Props) {
             <Animated.View
               style={[
                 styles.titlePortrait,
-                { top: Math.min(imgH * 0.84, height * 0.56), transform: [{ translateY: lift }] },
+                { top: titleTop, transform: [{ translateY: lift }] },
               ]}
             >
               {title}

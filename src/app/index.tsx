@@ -15,7 +15,8 @@ import { streak, useHabits, type Habit } from '../lib/useHabits';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useNow } from '../lib/useNow';
 import { useTasks } from '../lib/useTasks';
-import { enterActivates } from '../lib/web';
+import { useKeyboardInset } from '../lib/useKeyboardInset';
+import { enterActivates, heading } from '../lib/web';
 import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, colors, fonts, space } from '../theme';
 
 const tap = () => Haptics.selectionAsync().catch(() => {});
@@ -38,6 +39,7 @@ export default function HomeScreen() {
   const tasks = useTasks();
   const habits = useHabits();
   const [draft, setDraft] = useState('');
+  const keyboard = useKeyboardInset();
 
   if (!tasks.loaded || !habits.loaded) return <View style={styles.root} />;
 
@@ -46,10 +48,8 @@ export default function HomeScreen() {
   const todosDone = today.filter((t) => t.done).length;
   const habitsDone = habits.habits.filter((h) => h.done.includes(todayKey)).length;
   const weekStart = startOfWeek(now);
-  const weekOpen = WEEKDAYS.reduce(
-    (sum, _, i) => sum + (tasks.tasks[dateKey(addDays(weekStart, i))] ?? []).filter((t) => !t.done).length,
-    0,
-  );
+  const weekTasks = WEEKDAYS.flatMap((_, i) => tasks.tasks[dateKey(addDays(weekStart, i))] ?? []);
+  const weekOpen = weekTasks.filter((t) => !t.done).length;
   const weekday = WEEKDAYS[(now.getDay() + 6) % 7];
 
   const parts = [
@@ -58,7 +58,11 @@ export default function HomeScreen() {
   ].filter(Boolean);
   const summary = parts.length === 0 ? 'Für heute ist noch nichts geplant.' : `Heute ${parts.join(' und ')} erledigt.`;
   const weekSummary =
-    weekOpen === 0 ? 'Diese Woche ist alles erledigt.' : `Diese Woche ${weekOpen} ${weekOpen === 1 ? 'Todo' : 'Todos'} offen.`;
+    weekTasks.length === 0
+      ? 'Diese Woche noch keine Todos.'
+      : weekOpen === 0
+        ? 'Diese Woche sind alle Todos erledigt.'
+        : `Diese Woche ${weekOpen} ${weekOpen === 1 ? 'Todo' : 'Todos'} offen.`;
 
   const rowY = wide ? space.rowYWide : space.rowY;
 
@@ -67,7 +71,7 @@ export default function HomeScreen() {
       <PageHeader title="Startseite" color={colors.days[0]} gutter={gutter} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: keyboard }]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={Platform.OS === 'web'}
@@ -115,9 +119,11 @@ export default function HomeScreen() {
         <DayRow
           label="Heute"
           title="Todos"
+          subtitle={today.length === 0 ? 'Noch nichts geplant' : `${todosDone} von ${today.length} erledigt`}
+          todayDot={false}
           accessory={
             <SectionLink
-              label="Woche"
+              label="Alle Todos"
               canHover={canHover}
               onPress={() => router.navigate('/todos')}
               style={!wide && styles.linkCompact}
@@ -217,7 +223,7 @@ function HabitsToday({ habits, now, color, wide, gutter, canHover, onToggle }: H
         <View style={[styles.inner, styles.innerWide]}>
           <View style={styles.side}>
             <View style={styles.sectionHeadWide}>
-              <Text role="heading" style={[styles.sectionTitle, styles.sectionTitleWide]} maxFontSizeMultiplier={1.3}>
+              <Text {...heading(2)} style={[styles.sectionTitle, styles.sectionTitleWide]} maxFontSizeMultiplier={1.3}>
                 HABITS
               </Text>
               <Text style={styles.status}>{status}</Text>
@@ -234,7 +240,13 @@ function HabitsToday({ habits, now, color, wide, gutter, canHover, onToggle }: H
     <View style={{ backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }}>
       <View style={[styles.inner, styles.innerCompact]}>
         <View style={styles.sectionHead}>
-          <Text role="heading" style={styles.sectionTitle} maxFontSizeMultiplier={1.3}>
+          <Text
+            {...heading(2)}
+            style={styles.sectionTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.3}
+          >
             HABITS
           </Text>
           {link}

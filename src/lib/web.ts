@@ -54,3 +54,11 @@ export function spaceToggles(onToggle?: () => void) {
     },
   };
 }
+
+/**
+ * Überschrift mit Ebene: im Browser `<h2>` usw., damit Screenreader nach Abschnitten springen können.
+ * React Native kennt `aria-level` (noch) nicht in den Typen, deshalb als Spread: `<Text {...heading(2)} />`.
+ */
+export function heading(level: 1 | 2 | 3) {
+  return { role: 'heading' as const, 'aria-level': level };
+}

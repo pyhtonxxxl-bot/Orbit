@@ -3,7 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { WEEKDAYS, addDays, dateKey, formatDate } from '../lib/date';
 import { streakText, type Habit } from '../lib/useHabits';
-import { spaceToggles } from '../lib/web';
+import { heading, spaceToggles } from '../lib/web';
 import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
 import { Tick } from './Checkbox';
 
@@ -40,9 +40,10 @@ export function HabitRow({ habit, streak, weekStart, todayKey, color, wide, gutt
       {LETTERS.map((letter, i) => {
         const date = addDays(weekStart, i);
         const key = dateKey(date);
+        // Nach Wochentag statt Datum: beim Wochenwechsel bleiben dieselben Kreise stehen, der Tastaturfokus auch.
         return (
           <Day
-            key={key}
+            key={i}
             letter={letter}
             label={`${habit.title}, ${WEEKDAYS[i]}, ${formatDate(date)}`}
             checked={done.has(key)}
@@ -57,19 +58,27 @@ export function HabitRow({ habit, streak, weekStart, todayKey, color, wide, gutt
     </View>
   );
 
+  const streakLabel = streakText(streak) || 'Noch keine Serie';
+  const isNative = Platform.OS !== 'web';
+
   // Name lange drücken (Handy) oder Entf auf einem Tag (Tastatur) löscht, nach Rückfrage.
+  // VoiceOver/TalkBack bekommen dafür eine eigene Aktion („Habit löschen“).
   const name = (
     <Pressable
       onLongPress={canHover ? undefined : onRemove}
       delayLongPress={450}
-      accessible={false}
+      accessible={isNative}
       tabIndex={-1}
-      style={styles.name}
+      aria-label={isNative ? `${habit.title}, ${streakLabel}` : undefined}
+      accessibilityHint={isNative ? 'Lange drücken zum Löschen' : undefined}
+      accessibilityActions={isNative ? [{ name: 'longpress', label: 'Habit löschen' }] : undefined}
+      onAccessibilityAction={(e) => e.nativeEvent.actionName === 'longpress' && onRemove()}
+      style={[styles.name, wide && styles.nameWide]}
     >
-      <Text style={[styles.title, wide && styles.titleWide]} maxFontSizeMultiplier={1.3}>
+      <Text {...heading(2)} style={[styles.title, wide && styles.titleWide]} maxFontSizeMultiplier={1.3}>
         {habit.title.toUpperCase()}
       </Text>
-      <Text style={styles.streak}>{streakText(streak) || 'Noch keine Serie'}</Text>
+      <Text style={[styles.streak, wide && styles.streakWide]}>{streakLabel}</Text>
     </Pressable>
   );
 
@@ -105,7 +114,7 @@ export function HabitRow({ habit, streak, weekStart, todayKey, color, wide, gutt
       {...webKeyProps}
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
-      style={[styles.band, { backgroundColor: color, paddingVertical: rowY + 6, paddingHorizontal: gutter }]}
+      style={[styles.band, { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }]}
     >
       {wide ? (
         <View style={styles.innerWide}>
@@ -117,7 +126,11 @@ export function HabitRow({ habit, streak, weekStart, todayKey, color, wide, gutt
         </View>
       ) : (
         <View style={styles.innerCompact}>
-          {name}
+          {/* Schmales Fenster mit Maus: das × steht rechts neben dem Namen. */}
+          <View style={styles.headCompact}>
+            {name}
+            {deleteButton}
+          </View>
           {days}
         </View>
       )}
@@ -201,8 +214,21 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   name: {
+    flexShrink: 1,
     cursor: 'auto',
     alignSelf: 'flex-start',
+  },
+  // PC: Serie auf der Grundlinie neben dem Namen, wie das Datum neben dem Wochentag.
+  nameWide: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    columnGap: 16,
+  },
+  headCompact: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
   },
   title: {
     fontFamily: fonts.heavy,
@@ -220,6 +246,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 16,
     color: colors.inkMuted,
+  },
+  streakWide: {
+    marginTop: 0,
+    fontSize: 17,
   },
   days: {
     flexDirection: 'row',

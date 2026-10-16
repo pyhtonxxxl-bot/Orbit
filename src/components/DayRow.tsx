@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 
 import { formatDate, formatTime } from '../lib/date';
 import type { Task } from '../lib/useTasks';
+import { heading } from '../lib/web';
 import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
 import { TaskItem } from './TaskItem';
 
@@ -12,6 +13,10 @@ type Props = {
   title?: string;
   /** Kleiner Zusatz im Kopf, z. B. ein Link zur ganzen Woche. */
   accessory?: ReactNode;
+  /** Ersetzt Datum und Uhrzeit neben der Überschrift (Startseite: „1 von 3 erledigt“). */
+  subtitle?: string;
+  /** Oranger Punkt für heute. Auf der Startseite aus, dort ist alles „heute“. */
+  todayDot?: boolean;
   date: Date;
   now: Date;
   color: string;
@@ -39,6 +44,8 @@ export function DayRow({
   label,
   title = label,
   accessory,
+  subtitle,
+  todayDot = true,
   date,
   now,
   color,
@@ -62,8 +69,7 @@ export function DayRow({
 
   const dateText = (
     <Text style={[styles.date, wide && styles.dateWide]}>
-      {formatDate(date)}
-      {isToday ? ` – ${formatTime(now)}` : ''}
+      {subtitle ?? `${formatDate(date)}${isToday ? ` – ${formatTime(now)}` : ''}`}
     </Text>
   );
 
@@ -95,8 +101,8 @@ export function DayRow({
         <View style={styles.innerWide}>
           <View style={styles.side}>
             <View style={styles.headerLineWide}>
-              {isToday && <View style={styles.todayDot} />}
-              <Text role="heading" style={[styles.day, styles.dayWide]} maxFontSizeMultiplier={1.3}>
+              {isToday && todayDot && <View style={styles.todayDot} />}
+              <Text {...heading(2)} style={[styles.day, styles.dayWide]} maxFontSizeMultiplier={1.3}>
                 {title.toUpperCase()}
               </Text>
               {dateText}
@@ -117,7 +123,14 @@ export function DayRow({
   const headerContent = (
     <View style={styles.compactInner}>
       <View style={styles.headerLine}>
-        <Text style={styles.day} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3}>
+        {/* Als Überschrift nur, wenn der Kopf kein Knopf ist (Knöpfe dürfen keine Überschriften enthalten). */}
+        <Text
+          {...(onPressHeader ? {} : heading(2))}
+          style={styles.day}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.3}
+        >
           {title.toUpperCase()}
         </Text>
         {!expanded && tasks.length > 0 && (

@@ -26,7 +26,9 @@ export function SectionLink({ label, canHover, onPress, style }: Props) {
       hitSlop={6}
       style={({ pressed }) => [styles.link, canHover && hovered && styles.hovered, pressed && styles.pressed, style]}
     >
-      <Text style={[styles.label, canHover && hovered && styles.labelHovered]}>{label}</Text>
+      <Text style={[styles.label, canHover && hovered && styles.labelHovered]} maxFontSizeMultiplier={1.6}>
+        {label}
+      </Text>
       <Icon name="arrow" size={16} color={canHover && hovered ? colors.ink : colors.inkMuted} />
     </Pressable>
   );

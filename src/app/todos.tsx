@@ -8,6 +8,7 @@ import { WeekFooter } from '../components/WeekFooter';
 import { PageHeader } from '../components/shell/PageHeader';
 import { WEEKDAYS, addDays, dateKey, formatWeekRange, isoWeek } from '../lib/date';
 import { useShell } from '../lib/shell';
+import { useKeyboardInset } from '../lib/useKeyboardInset';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useNow } from '../lib/useNow';
 import { useTasks } from '../lib/useTasks';
@@ -31,6 +32,7 @@ export default function TodosScreen() {
   const now = useNow();
   const { tasks, loaded, add, toggle, remove } = useTasks();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const keyboard = useKeyboardInset();
 
   // Am Handy ist beim Start der heutige Tag aufgeklappt, wie ein aufgeschlagenes Notizbuch.
   // Am PC ist Platz genug, dort sind alle Tage offen.
@@ -79,7 +81,7 @@ export default function TodosScreen() {
       <PageHeader title="Todos" color={colors.days[0]} gutter={gutter} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: keyboard }]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         // Im Browser gehört eine (dezente) Scrollleiste dazu, sonst sieht man nicht, dass es weitergeht.

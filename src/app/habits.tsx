@@ -10,6 +10,7 @@ import { confirmDelete } from '../lib/confirm';
 import { dateKey, formatWeekRange, isoWeek } from '../lib/date';
 import { useShell } from '../lib/shell';
 import { streak, streakText, useHabits } from '../lib/useHabits';
+import { useKeyboardInset } from '../lib/useKeyboardInset';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useNow } from '../lib/useNow';
 import { useWeekNav } from '../lib/useWeekNav';
@@ -28,6 +29,10 @@ export default function HabitsScreen() {
   const { habits, loaded, add, toggle, remove } = useHabits();
   const { weekStart, isCurrentWeek, shiftWeek } = useWeekNav(now);
   const [draft, setDraft] = useState('');
+  const keyboard = useKeyboardInset();
+  const scrollRef = useRef<ScrollView>(null);
+  // Android: tippt jemand ins Feld ganz unten, scrollt die Seite nach, sobald die Tastatur Platz gemacht hat.
+  const newFocusedRef = useRef(false);
 
   if (!loaded) return <View style={styles.root} />;
 
@@ -60,8 +65,12 @@ export default function HabitsScreen() {
 
       <PageHeader title="Habits" color={colors.days[0]} gutter={gutter} />
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: keyboard }]}
+        onContentSizeChange={() => {
+          if (keyboard > 0 && newFocusedRef.current) scrollRef.current?.scrollToEnd({ animated: true });
+        }}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={Platform.OS === 'web'}
@@ -134,6 +143,9 @@ export default function HabitsScreen() {
           draft={draft}
           onDraftChange={setDraft}
           onAdd={(title) => add(title)}
+          onFocusChange={(focused) => {
+            newFocusedRef.current = focused;
+          }}
         />
 
         {/* Am Handy scrollt die Wochen-Navigation mit, am PC bleibt sie unten immer sichtbar. */}
@@ -154,10 +166,11 @@ type NewHabitProps = {
   draft: string;
   onDraftChange: (text: string) => void;
   onAdd: (title: string) => void;
+  onFocusChange: (focused: boolean) => void;
 };
 
 /** Letztes Band: hier entsteht ein neues Habit. Es füllt den restlichen Platz, damit der Stapel bis unten reicht. */
-function NewHabit({ color, wide, gutter, draft, onDraftChange, onAdd }: NewHabitProps) {
+function NewHabit({ color, wide, gutter, draft, onDraftChange, onAdd, onFocusChange }: NewHabitProps) {
   const [focused, setFocused] = useState(false);
   const ref = useRef<TextInput>(null);
   const rowY = wide ? space.rowYWide : space.rowY;
@@ -171,8 +184,14 @@ function NewHabit({ color, wide, gutter, draft, onDraftChange, onAdd }: NewHabit
         onAdd(draft);
         onDraftChange('');
       }}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      onFocus={() => {
+        setFocused(true);
+        onFocusChange(true);
+      }}
+      onBlur={() => {
+        setFocused(false);
+        onFocusChange(false);
+      }}
       onKeyPress={Platform.OS === 'web' ? (e) => e.nativeEvent.key === 'Escape' && ref.current?.blur() : undefined}
       submitBehavior="submit"
       blurOnSubmit={false}
