@@ -8,12 +8,14 @@ import { enterActivates } from '../../lib/web';
 import { colors, fonts } from '../../theme';
 import { Icon, type IconName } from '../Icon';
 
-type Item = { label: string; icon: IconName; href?: '/' | '/woche'; soon?: boolean };
+type Href = '/' | '/habits' | '/todos';
+type Item = { label: string; icon: IconName; href?: Href; soon?: boolean };
 
 // Startseite zuerst, dann die Werkzeuge. Was „bald“ ist, steht schon da, ist aber noch nicht klickbar.
 const MAIN: Item[] = [{ label: 'Startseite', icon: 'home', href: '/' }];
 const TOOLS: Item[] = [
-  { label: 'Woche', icon: 'week', href: '/woche' },
+  { label: 'Habits', icon: 'habit', href: '/habits' },
+  { label: 'Todos', icon: 'todo', href: '/todos' },
   { label: 'Training', icon: 'training', soon: true },
   { label: 'Ernährung', icon: 'food', soon: true },
 ];
@@ -32,7 +34,7 @@ export function Sidebar({ onNavigate, onLock, onClose }: Props) {
 
   const go = (href: string) => {
     onNavigate?.();
-    if (href !== pathname) router.navigate(href as '/' | '/woche');
+    if (href !== pathname) router.navigate(href as Href);
   };
 
   return (

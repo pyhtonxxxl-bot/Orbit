@@ -5,10 +5,10 @@
 Orbit ist eine minimalistische Life-Tracking-App, ein privater Manager statt zehn einzelner Apps (Expo SDK 57, Expo Router, TypeScript). Sie läuft auf iPhone, Android und im Browser am PC. Als Nächstes kommen Trainingspläne und Food-Tracking (siehe `docs/ROADMAP.md`).
 
 ## Aufbau
-- **Start:** `src/components/gate/IntroGate.tsx`: weißer Screen, dann eine Foto-Collage (Statue → Statuen-Auge → echtes Auge → Iris, Bilder in `assets/intro/`) hin und zurück. Danach der Sperrbildschirm: am Handy die Wisch-Leiste (`SlideToUnlock`) nach rechts ziehen, am PC die Leertaste gedrückt halten (oder ziehen). Im Browser überspringt `?intro=0` beides (für Tests).
+- **Start:** `src/components/gate/LockScreen.tsx`: blendet aus Weiß ein, links der unscharfe Statuenkopf (`assets/lock/statue-blur.jpg`, erzeugt mit `scripts/make-lock-image.py`), rechts ORBIT. Keine Animation darüber hinaus. Entsperren: am Handy die Wisch-Leiste (`SlideToUnlock`) nach rechts ziehen, am PC die Leertaste gedrückt halten (oder ziehen). Im Browser überspringt `?intro=0` den Sperrbildschirm (für Tests).
 - **Sperren:** „Sperren“ in der Seitenleiste schiebt den Sperrbildschirm wieder herein. Die App bleibt darunter geladen (Seite und Eingaben bleiben erhalten) und ist im Browser solange `inert`.
 - **Hülle:** `src/components/shell/`: Seitenleiste ab 1100 px fest links, darunter als Schublade über das Menü-Symbol (`PageHeader`). Browser-Helfer (inert, Fokus, Enter auf Links) liegen in `src/lib/web.ts`.
-- **Seiten:** `/` Startseite (Willkommen, heute, Werkzeuge als Bänder), `/woche` Wochenplaner.
+- **Seiten:** `/` Startseite (Willkommen, heute aufgeteilt in Habits und Todos, kommende Werkzeuge), `/habits` Habits (pro Habit ein Band mit den sieben Tagen zum Abhaken und der Serie), `/todos` Wochenplaner (`/woche` leitet dorthin weiter).
 
 ## Design ist das Wichtigste
 - Look: gestapelte Tagesbänder in Graustufen, von hell (Montag) nach dunkel (Sonntag), dazu genau **eine** Akzentfarbe (Orange `colors.accent`). Schrift: Barlow (ExtraBold für Tage, Regular/Medium für Text).
@@ -17,13 +17,14 @@ Orbit ist eine minimalistische Life-Tracking-App, ein privater Manager statt zeh
   - **compact** (< 860 px Inhaltsbreite, Handy/Tablet hoch): Akkordeon, ein Tag offen.
   - **wide** (≥ 860 px Inhaltsbreite, PC/Tablet quer): alle Tage offen, Tag + Datum links, Aufgaben rechts; die Woche soll auf einen 1280×720-Bildschirm passen.
   - Inhaltsbreite = Fenster minus Seitenleiste (`useShell().contentWidth`).
-- Am PC: Hover-Zustände, Mauszeiger (`cursor: 'pointer'`), Tastatur (Leertaste halten entsperrt, ← → Woche, T heute, Enter fügt hinzu), kein Browser-Fokusrahmen in Eingabefeldern.
+- Am PC: Hover-Zustände, Mauszeiger (`cursor: 'pointer'`), Tastatur (Leertaste halten entsperrt, ← → Woche und T heute in Todos und Habits, Enter fügt hinzu), kein Browser-Fokusrahmen in Eingabefeldern.
 - Icons: eigene Linien-Icons in `src/components/Icon.tsx` (react-native-svg), keine Icon-Fonts.
 - UI-Texte auf **Deutsch**.
 
 ## Code
 - Routen in `src/app/`, alles andere in `src/components/` und `src/lib/`.
-- Daten: `src/lib/useTasks.ts` (AsyncStorage, im Browser localStorage). Den Speicherschlüssel `orbit.tasks.v1` nur mit Migration ändern.
+- Daten: `src/lib/useTasks.ts` (Todos, Schlüssel `orbit.tasks.v1`) und `src/lib/useHabits.ts` (Habits, `orbit.habits.v1`), beide über `useStoredState` aus `src/lib/storage.ts` (AsyncStorage, im Browser localStorage). Speicherschlüssel nur mit Migration ändern.
+- Listen beliebiger Länge (z. B. Habits) bekommen ihre Grautöne über `bandColor()` aus `src/theme.ts`.
 - Neue Pakete immer mit `npx expo install <paket>`.
 
 ## Vor jedem Commit prüfen

@@ -1,13 +1,22 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { formatDate, formatTime } from '../lib/date';
 import type { Task } from '../lib/useTasks';
+import { heading } from '../lib/web';
 import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
 import { TaskItem } from './TaskItem';
 
 type Props = {
   label: string;
+  /** Überschrift, falls sie anders lauten soll als der Tag (Startseite: „Todos“). */
+  title?: string;
+  /** Kleiner Zusatz im Kopf, z. B. ein Link zur ganzen Woche. */
+  accessory?: ReactNode;
+  /** Ersetzt Datum und Uhrzeit neben der Überschrift (Startseite: „1 von 3 erledigt“). */
+  subtitle?: string;
+  /** Oranger Punkt für heute. Auf der Startseite aus, dort ist alles „heute“. */
+  todayDot?: boolean;
   date: Date;
   now: Date;
   color: string;
@@ -33,6 +42,10 @@ type Props = {
 
 export function DayRow({
   label,
+  title = label,
+  accessory,
+  subtitle,
+  todayDot = true,
   date,
   now,
   color,
@@ -56,8 +69,7 @@ export function DayRow({
 
   const dateText = (
     <Text style={[styles.date, wide && styles.dateWide]}>
-      {formatDate(date)}
-      {isToday ? ` – ${formatTime(now)}` : ''}
+      {subtitle ?? `${formatDate(date)}${isToday ? ` – ${formatTime(now)}` : ''}`}
     </Text>
   );
 
@@ -89,12 +101,13 @@ export function DayRow({
         <View style={styles.innerWide}>
           <View style={styles.side}>
             <View style={styles.headerLineWide}>
-              {isToday && <View style={styles.todayDot} />}
-              <Text role="heading" style={[styles.day, styles.dayWide]} maxFontSizeMultiplier={1.3}>
-                {label.toUpperCase()}
+              {isToday && todayDot && <View style={styles.todayDot} />}
+              <Text {...heading(2)} style={[styles.day, styles.dayWide]} maxFontSizeMultiplier={1.3}>
+                {title.toUpperCase()}
               </Text>
               {dateText}
             </View>
+            {accessory && <View style={styles.accessoryWide}>{accessory}</View>}
           </View>
           <View style={styles.bodyWide}>{body}</View>
         </View>
@@ -110,14 +123,22 @@ export function DayRow({
   const headerContent = (
     <View style={styles.compactInner}>
       <View style={styles.headerLine}>
-        <Text style={styles.day} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3}>
-          {label.toUpperCase()}
+        {/* Als Überschrift nur, wenn der Kopf kein Knopf ist (Knöpfe dürfen keine Überschriften enthalten). */}
+        <Text
+          {...(onPressHeader ? {} : heading(2))}
+          style={styles.day}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.3}
+        >
+          {title.toUpperCase()}
         </Text>
         {!expanded && tasks.length > 0 && (
           <Text style={styles.count}>
             {done}/{tasks.length}
           </Text>
         )}
+        {accessory}
       </View>
       {(expanded || isToday) && dateText}
     </View>
@@ -236,6 +257,10 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  accessoryWide: {
+    marginTop: 6,
+    alignItems: 'flex-start',
   },
   headerLineWide: {
     flexDirection: 'row',

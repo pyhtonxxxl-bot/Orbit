@@ -91,7 +91,7 @@ export function SlideToUnlock({ onUnlock, holdSpace }: Props) {
   );
 
   // PC: Leertaste halten füllt die Leiste, loslassen lässt sie zurückfedern.
-  // Auch gehaltene Tasten (repeat) starten das Füllen, z. B. wenn die Leertaste schon während der Collage gedrückt wurde.
+  // Auch gehaltene Tasten (repeat) starten das Füllen, z. B. wenn die Leertaste schon beim Einblenden gedrückt war.
   useEffect(() => {
     if (!holdSpace || !isWeb || typeof document === 'undefined') return;
     const isSpace = (e: KeyboardEvent) => e.code === 'Space' || e.key === ' ';

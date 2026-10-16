@@ -1,26 +1,25 @@
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DayRow } from '../components/DayRow';
+import { HabitItem } from '../components/HabitItem';
 import { Icon, type IconName } from '../components/Icon';
+import { SectionLink } from '../components/SectionLink';
 import { PageHeader } from '../components/shell/PageHeader';
 import { WEEKDAYS, addDays, dateKey, startOfWeek } from '../lib/date';
 import { useShell } from '../lib/shell';
+import { streak, useHabits, type Habit } from '../lib/useHabits';
 import { useCanHover, useLayout } from '../lib/useLayout';
+import { useNow } from '../lib/useNow';
 import { useTasks } from '../lib/useTasks';
-import { enterActivates } from '../lib/web';
+import { useKeyboardInset } from '../lib/useKeyboardInset';
+import { enterActivates, heading } from '../lib/web';
 import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, colors, fonts, space } from '../theme';
 
-function useNow(): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 15_000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
+const tap = () => Haptics.selectionAsync().catch(() => {});
 
 function greeting(date: Date): string {
   const h = date.getHours();
@@ -29,7 +28,7 @@ function greeting(date: Date): string {
   return 'Guten Abend';
 }
 
-/** Startseite: Begrüßung, die Aufgaben von heute und alle Werkzeuge als Bänder. */
+/** Startseite: Begrüßung, heute aufgeteilt in Habits und Todos, darunter die kommenden Werkzeuge. */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { wide, gutter } = useLayout();
@@ -37,25 +36,33 @@ export default function HomeScreen() {
   const shell = useShell();
   const hasHeader = !!shell && !shell.sidebarDocked;
   const now = useNow();
-  const { tasks, loaded, add, toggle, remove } = useTasks();
+  const tasks = useTasks();
+  const habits = useHabits();
   const [draft, setDraft] = useState('');
+  const keyboard = useKeyboardInset();
 
-  if (!loaded) return <View style={styles.root} />;
+  if (!tasks.loaded || !habits.loaded) return <View style={styles.root} />;
 
   const todayKey = dateKey(now);
-  const today = tasks[todayKey] ?? [];
-  const todayDone = today.filter((t) => t.done).length;
+  const today = tasks.tasks[todayKey] ?? [];
+  const todosDone = today.filter((t) => t.done).length;
+  const habitsDone = habits.habits.filter((h) => h.done.includes(todayKey)).length;
   const weekStart = startOfWeek(now);
-  const weekOpen = WEEKDAYS.reduce(
-    (sum, _, i) => sum + (tasks[dateKey(addDays(weekStart, i))] ?? []).filter((t) => !t.done).length,
-    0,
-  );
+  const weekTasks = WEEKDAYS.flatMap((_, i) => tasks.tasks[dateKey(addDays(weekStart, i))] ?? []);
+  const weekOpen = weekTasks.filter((t) => !t.done).length;
   const weekday = WEEKDAYS[(now.getDay() + 6) % 7];
 
-  const summary =
-    today.length === 0
-      ? 'Für heute ist noch nichts geplant.'
-      : `Heute ${today.length} ${today.length === 1 ? 'Aufgabe' : 'Aufgaben'}, ${todayDone} erledigt.`;
+  const parts = [
+    habits.habits.length > 0 && `${habitsDone} von ${habits.habits.length} Habits`,
+    today.length > 0 && `${todosDone} von ${today.length} Todos`,
+  ].filter(Boolean);
+  const summary = parts.length === 0 ? 'Für heute ist noch nichts geplant.' : `Heute ${parts.join(' und ')} erledigt.`;
+  const weekSummary =
+    weekTasks.length === 0
+      ? 'Diese Woche noch keine Todos.'
+      : weekOpen === 0
+        ? 'Diese Woche sind alle Todos erledigt.'
+        : `Diese Woche ${weekOpen} ${weekOpen === 1 ? 'Todo' : 'Todos'} offen.`;
 
   const rowY = wide ? space.rowYWide : space.rowY;
 
@@ -64,21 +71,19 @@ export default function HomeScreen() {
       <PageHeader title="Startseite" color={colors.days[0]} gutter={gutter} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: keyboard }]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={Platform.OS === 'web'}
       >
         {/* Begrüßung */}
         <View
-          style={[
-            {
-              backgroundColor: colors.days[0],
-              paddingTop: (wide ? 40 : rowY) + (hasHeader ? 0 : insets.top),
-              paddingBottom: wide ? 36 : rowY,
-              paddingHorizontal: gutter,
-            },
-          ]}
+          style={{
+            backgroundColor: colors.days[0],
+            paddingTop: (wide ? 40 : rowY) + (hasHeader ? 0 : insets.top),
+            paddingBottom: wide ? 36 : rowY,
+            paddingHorizontal: gutter,
+          }}
         >
           <View style={[styles.inner, wide ? styles.innerWide : styles.innerCompact]}>
             <View style={wide ? styles.side : undefined}>
@@ -91,19 +96,42 @@ export default function HomeScreen() {
             </View>
             <View style={wide ? styles.bodyWide : styles.summaryCompact}>
               <Text style={styles.summary}>{summary}</Text>
-              <Text style={styles.summaryMuted}>
-                Diese Woche {weekOpen === 0 ? 'ist alles erledigt.' : `${weekOpen} offen.`}
-              </Text>
+              <Text style={styles.summaryMuted}>{weekSummary}</Text>
             </View>
           </View>
         </View>
 
-        {/* Heute: dieselbe Tageszeile wie im Wochenplaner, immer offen */}
-        <DayRow
-          label="Heute"
-          date={now}
+        {/* Habits: jeden Tag dasselbe abhaken */}
+        <HabitsToday
+          habits={habits.habits}
           now={now}
           color={colors.days[1]}
+          wide={wide}
+          gutter={gutter}
+          canHover={canHover}
+          onToggle={(id) => {
+            tap();
+            habits.toggle(id, todayKey);
+          }}
+        />
+
+        {/* Todos: dieselbe Tageszeile wie im Wochenplaner, immer offen */}
+        <DayRow
+          label="Heute"
+          title="Todos"
+          subtitle={today.length === 0 ? 'Noch nichts geplant' : `${todosDone} von ${today.length} erledigt`}
+          todayDot={false}
+          accessory={
+            <SectionLink
+              label="Alle Todos"
+              canHover={canHover}
+              onPress={() => router.navigate('/todos')}
+              style={!wide && styles.linkCompact}
+            />
+          }
+          date={now}
+          now={now}
+          color={colors.days[2]}
           isToday
           expanded
           fill={false}
@@ -113,21 +141,14 @@ export default function HomeScreen() {
           tasks={today}
           draft={draft}
           onDraftChange={setDraft}
-          onAdd={(title) => add(todayKey, title)}
-          onToggle={(id) => toggle(todayKey, id)}
-          onRemove={(id) => remove(todayKey, id)}
+          onAdd={(title) => tasks.add(todayKey, title)}
+          onToggle={(id) => {
+            tap();
+            tasks.toggle(todayKey, id);
+          }}
+          onRemove={(id) => tasks.remove(todayKey, id)}
         />
 
-        <ToolBand
-          name="Woche"
-          icon="week"
-          description={weekOpen === 0 ? 'Wochenplaner' : `Wochenplaner · ${weekOpen} offen`}
-          color={colors.days[2]}
-          wide={wide}
-          gutter={gutter}
-          canHover={canHover}
-          onPress={() => router.navigate('/woche')}
-        />
         <ToolBand
           name="Training"
           icon="training"
@@ -151,6 +172,88 @@ export default function HomeScreen() {
           <Text style={styles.footerText}>Startseite anpassen · kommt bald</Text>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+type HabitsTodayProps = {
+  habits: Habit[];
+  now: Date;
+  color: string;
+  wide: boolean;
+  gutter: number;
+  canHover: boolean;
+  onToggle: (id: string) => void;
+};
+
+/** Band „Habits“: alle Habits für heute zum Abhaken, mit Link zur Wochenansicht. */
+function HabitsToday({ habits, now, color, wide, gutter, canHover, onToggle }: HabitsTodayProps) {
+  const todayKey = dateKey(now);
+  const done = habits.filter((h) => h.done.includes(todayKey)).length;
+  const rowY = wide ? space.rowYWide : space.rowY;
+  const status = habits.length === 0 ? 'Noch keine angelegt' : `${done} von ${habits.length} erledigt`;
+  const link = (
+    <SectionLink
+      label={habits.length === 0 ? 'Anlegen' : 'Alle Habits'}
+      canHover={canHover}
+      onPress={() => router.navigate('/habits')}
+      style={!wide && styles.linkCompact}
+    />
+  );
+
+  const list =
+    habits.length === 0 ? (
+      <Text style={styles.empty}>Was willst du jeden Tag schaffen? Lesen, Sport, Wasser trinken …</Text>
+    ) : (
+      habits.map((habit) => (
+        <HabitItem
+          key={habit.id}
+          title={habit.title}
+          checked={habit.done.includes(todayKey)}
+          streak={streak(habit, now)}
+          canHover={canHover}
+          onToggle={() => onToggle(habit.id)}
+        />
+      ))
+    );
+
+  if (wide) {
+    return (
+      <View style={{ backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }}>
+        <View style={[styles.inner, styles.innerWide]}>
+          <View style={styles.side}>
+            <View style={styles.sectionHeadWide}>
+              <Text {...heading(2)} style={[styles.sectionTitle, styles.sectionTitleWide]} maxFontSizeMultiplier={1.3}>
+                HABITS
+              </Text>
+              <Text style={styles.status}>{status}</Text>
+            </View>
+            <View style={styles.linkWide}>{link}</View>
+          </View>
+          <View style={[styles.bodyWide, styles.listWide]}>{list}</View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }}>
+      <View style={[styles.inner, styles.innerCompact]}>
+        <View style={styles.sectionHead}>
+          <Text
+            {...heading(2)}
+            style={styles.sectionTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.3}
+          >
+            HABITS
+          </Text>
+          {link}
+        </View>
+        <Text style={[styles.status, styles.statusCompact]}>{status}</Text>
+        <View style={styles.listCompact}>{list}</View>
+      </View>
     </View>
   );
 }
@@ -183,7 +286,6 @@ function ToolBand({ name, icon, description, color, wide, gutter, canHover, onPr
       aria-label={soon ? `${name}, kommt bald` : `${name} öffnen`}
       aria-disabled={soon}
       style={[
-        styles.band,
         styles.tool,
         soon && styles.toolSoon,
         { backgroundColor: color, paddingVertical: rowY + 4, paddingHorizontal: gutter },
@@ -217,9 +319,6 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
   },
-  band: {
-    flexGrow: 1,
-  },
   inner: {
     width: '100%',
   },
@@ -232,8 +331,9 @@ const styles = StyleSheet.create({
     maxWidth: CONTENT_MAX_WIDTH,
     gap: 48,
   },
+  // Gleiche Spalten wie im Wochenplaner, damit die Bänder untereinander fluchten.
   side: {
-    flexBasis: '40%',
+    flexBasis: '43%',
     maxWidth: 460,
   },
   bodyWide: {
@@ -270,6 +370,62 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 16,
     lineHeight: 24,
+    color: colors.inkMuted,
+  },
+  // Kopf der Bänder „Habits“ und „Todos“: wie die Tagesnamen im Wochenplaner.
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sectionHeadWide: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    columnGap: 16,
+  },
+  sectionTitle: {
+    flexShrink: 1,
+    fontFamily: fonts.heavy,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: 0.3,
+    color: colors.ink,
+  },
+  sectionTitleWide: {
+    fontSize: 38,
+    lineHeight: 44,
+  },
+  status: {
+    fontFamily: fonts.regular,
+    fontSize: 17,
+    color: colors.inkMuted,
+  },
+  statusCompact: {
+    marginTop: 10,
+  },
+  linkWide: {
+    marginTop: 6,
+    alignItems: 'flex-start',
+  },
+  // Am Handy steht der Link rechts neben der Überschrift, mittig zu ihr.
+  linkCompact: {
+    alignSelf: 'center',
+    marginHorizontal: 0,
+    marginRight: -10,
+  },
+  listWide: {
+    marginTop: 10,
+  },
+  listCompact: {
+    marginTop: 18,
+  },
+  empty: {
+    paddingVertical: 8,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 22,
     color: colors.inkMuted,
   },
   tool: {

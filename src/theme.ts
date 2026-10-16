@@ -20,8 +20,10 @@ export const colors = {
   accent: '#E4642B',
   white: '#FFFFFF',
 
-  // Intro & Entsperren: weißes Papier, dunkle Wisch-Leiste wie ein Hardware-Schalter.
+  // Sperrbildschirm: blendet aus Weiß ein. Hintergrund = Rand des Statuenbilds
+  // (scripts/make-lock-image.py), dunkle Wisch-Leiste wie ein Hardware-Schalter.
   paper: '#FFFFFF',
+  lock: '#ECECEC',
   pill: '#2B2B2B',
   pillTrack: 'rgba(255, 255, 255, 0.35)',
 
@@ -31,6 +33,22 @@ export const colors = {
   active: 'rgba(0, 0, 0, 0.07)',
   backdrop: 'rgba(0, 0, 0, 0.28)',
 };
+
+/**
+ * Grau für Band `index` von `count` in Listen beliebiger Länge (z. B. Habits): dieselbe Hell-dunkel-Treppe
+ * wie die Wochentage, vom zweiten Tagesband an. Bis zu sechs Bänder bekommen genau die Tagesfarben,
+ * bei mehr wird die Treppe feiner, endet aber nie dunkler als Sonntag.
+ */
+export function bandColor(index: number, count: number): string {
+  const steps = colors.days.length - 1;
+  const t = Math.min(steps, 1 + (index * (steps - 1)) / Math.max(steps - 1, count - 1));
+  const lo = Math.floor(t);
+  const hi = Math.min(steps, lo + 1);
+  const grey = (hex: string) => parseInt(hex.slice(1, 3), 16);
+  const v = Math.round(grey(colors.days[lo]) + (grey(colors.days[hi]) - grey(colors.days[lo])) * (t - lo));
+  const h = v.toString(16).padStart(2, '0');
+  return `#${h}${h}${h}`.toUpperCase();
+}
 
 export const fonts = {
   regular: 'Barlow_400Regular',

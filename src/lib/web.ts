@@ -39,3 +39,26 @@ export function enterActivates(onPress?: () => void) {
     },
   };
 }
+
+/**
+ * Leertaste auf einem fokussierten Kästchen (role="checkbox") schaltet um. react-native-web tut das
+ * nur bei role="button". Als Spread verwenden: `<Pressable {...spaceToggles(toggle)} />`.
+ */
+export function spaceToggles(onToggle?: () => void) {
+  if (!isWeb || !onToggle) return {};
+  return {
+    onKeyDown: (e: WebKeyEvent & { repeat?: boolean }) => {
+      if (e.key !== ' ' || e.target !== e.currentTarget || e.repeat) return;
+      e.preventDefault();
+      onToggle();
+    },
+  };
+}
+
+/**
+ * Überschrift mit Ebene: im Browser `<h2>` usw., damit Screenreader nach Abschnitten springen können.
+ * React Native kennt `aria-level` (noch) nicht in den Typen, deshalb als Spread: `<Text {...heading(2)} />`.
+ */
+export function heading(level: 1 | 2 | 3) {
+  return { role: 'heading' as const, 'aria-level': level };
+}

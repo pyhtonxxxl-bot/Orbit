@@ -5,8 +5,26 @@ import { colors } from '../theme';
 export function Checkbox({ checked }: { checked: boolean }) {
   return (
     <View style={[styles.box, checked && styles.boxChecked]}>
-      {checked && <View style={styles.tick} />}
+      {checked && <Tick />}
     </View>
+  );
+}
+
+/** Weißes Häkchen ohne Icon-Library: zwei Ränder einer gedrehten Box. `scale` für größere Flächen. */
+export function Tick({ scale = 1 }: { scale?: number }) {
+  return (
+    <View
+      style={[
+        styles.tick,
+        scale !== 1 && {
+          width: 6 * scale,
+          height: 11 * scale,
+          marginTop: -2 * scale,
+          borderRightWidth: 2 * Math.sqrt(scale),
+          borderBottomWidth: 2 * Math.sqrt(scale),
+        },
+      ]}
+    />
   );
 }
 
@@ -24,7 +42,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderColor: colors.accent,
   },
-  // Häkchen ohne Icon-Library: zwei Ränder einer gedrehten Box.
   tick: {
     width: 6,
     height: 11,

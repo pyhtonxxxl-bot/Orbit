@@ -9,12 +9,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { IntroGate } from '../components/gate/IntroGate';
+import { LockScreen } from '../components/gate/LockScreen';
 import { Shell } from '../components/shell/Shell';
 import { setInert } from '../lib/web';
 import { colors } from '../theme';
 
-// Für Tests und Entwicklung im Browser: `?intro=0` überspringt Intro und Sperrbildschirm.
+// Für Tests und Entwicklung im Browser: `?intro=0` überspringt den Sperrbildschirm.
 const skipGate =
   Platform.OS === 'web' &&
   typeof window !== 'undefined' &&
@@ -28,8 +28,8 @@ export default function RootLayout() {
     Barlow_800ExtraBold,
   });
 
-  // Beim Öffnen: Intro, dann Sperrbildschirm. „Sperren“ in der Seitenleiste zeigt nur den Sperrbildschirm.
-  const [gate, setGate] = useState<'intro' | 'lock' | null>(skipGate ? null : 'intro');
+  // Beim Öffnen blendet der Sperrbildschirm aus Weiß ein, nach „Sperren“ in der Seitenleiste gleitet er herein.
+  const [gate, setGate] = useState<'start' | 'lock' | null>(skipGate ? null : 'start');
   // Die App wird erst beim ersten Entsperren eingehängt und bleibt danach stehen, auch beim Sperren:
   // so kommst du nach dem Entsperren genau dorthin zurück, wo du warst.
   const [appMounted, setAppMounted] = useState(skipGate);
@@ -60,9 +60,9 @@ export default function RootLayout() {
         </View>
       )}
       {gate && (
-        <IntroGate
+        <LockScreen
           key={gate}
-          startLocked={gate === 'lock'}
+          entrance={gate === 'start' ? 'fade' : 'slide'}
           // Die App liegt schon darunter, während der Sperrbildschirm weggleitet.
           onUnlock={() => setAppMounted(true)}
           onGone={() => setGate(null)}
