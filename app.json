@@ -25,7 +25,7 @@
       "favicon": "./assets/favicon.png",
       "lang": "de",
       "shortName": "Orbit",
-      "description": "Minimalistischer Wochen-Planer",
+      "description": "Minimalistischer privater Manager: Habits und Todos",
       "themeColor": "#DBDBDB",
       "backgroundColor": "#939393"
     },

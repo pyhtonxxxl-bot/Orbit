@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { formatDate, formatTime } from '../lib/date';
@@ -8,6 +8,10 @@ import { TaskItem } from './TaskItem';
 
 type Props = {
   label: string;
+  /** Überschrift, falls sie anders lauten soll als der Tag (Startseite: „Todos“). */
+  title?: string;
+  /** Kleiner Zusatz im Kopf, z. B. ein Link zur ganzen Woche. */
+  accessory?: ReactNode;
   date: Date;
   now: Date;
   color: string;
@@ -33,6 +37,8 @@ type Props = {
 
 export function DayRow({
   label,
+  title = label,
+  accessory,
   date,
   now,
   color,
@@ -91,10 +97,11 @@ export function DayRow({
             <View style={styles.headerLineWide}>
               {isToday && <View style={styles.todayDot} />}
               <Text role="heading" style={[styles.day, styles.dayWide]} maxFontSizeMultiplier={1.3}>
-                {label.toUpperCase()}
+                {title.toUpperCase()}
               </Text>
               {dateText}
             </View>
+            {accessory && <View style={styles.accessoryWide}>{accessory}</View>}
           </View>
           <View style={styles.bodyWide}>{body}</View>
         </View>
@@ -111,13 +118,14 @@ export function DayRow({
     <View style={styles.compactInner}>
       <View style={styles.headerLine}>
         <Text style={styles.day} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3}>
-          {label.toUpperCase()}
+          {title.toUpperCase()}
         </Text>
         {!expanded && tasks.length > 0 && (
           <Text style={styles.count}>
             {done}/{tasks.length}
           </Text>
         )}
+        {accessory}
       </View>
       {(expanded || isToday) && dateText}
     </View>
@@ -236,6 +244,10 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  accessoryWide: {
+    marginTop: 6,
+    alignItems: 'flex-start',
   },
   headerLineWide: {
     flexDirection: 'row',

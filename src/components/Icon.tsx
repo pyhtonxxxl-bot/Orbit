@@ -3,7 +3,7 @@ import Svg, { Path, Rect } from 'react-native-svg';
 
 import { colors } from '../theme';
 
-export type IconName = 'home' | 'week' | 'training' | 'food' | 'menu' | 'close' | 'arrow' | 'lock';
+export type IconName = 'home' | 'habit' | 'todo' | 'training' | 'food' | 'menu' | 'close' | 'arrow' | 'lock';
 
 type Props = {
   name: IconName;
@@ -25,10 +25,18 @@ export function Icon({ name, size = 20, color = colors.ink, strokeWidth = 1.75 }
             <Path d="M5.5 9v11h4.5v-6h4v6h4.5V9" {...stroke} />
           </>
         )}
-        {name === 'week' && (
+        {/* Habit: ein Kreis, der immer wieder von vorn beginnt. */}
+        {name === 'habit' && (
           <>
-            <Rect x={3.5} y={5} width={17} height={15.5} rx={2.5} {...stroke} />
-            <Path d="M3.5 10h17M8 3v4M16 3v4" {...stroke} />
+            <Path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5" {...stroke} />
+            <Path d="M20 3.5v5h-5" {...stroke} />
+          </>
+        )}
+        {/* Todos: eine Liste, zwei Punkte abgehakt, einer offen. */}
+        {name === 'todo' && (
+          <>
+            <Path d="M3.5 6.5 5.3 8.3 8.5 5M3.5 12.5l1.8 1.8 3.2-3.3M12 6.5h8.5M12 12.5h8.5M12 18.5h8.5" {...stroke} />
+            <Rect x={4} y={16.5} width={4} height={4} rx={1} {...stroke} />
           </>
         )}
         {name === 'training' && <Path d="M6.5 7.5v9M3.5 10v4M17.5 7.5v9M20.5 10v4M6.5 12h11" {...stroke} />}

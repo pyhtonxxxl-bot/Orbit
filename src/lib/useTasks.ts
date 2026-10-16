@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { useCallback } from 'react';
+
+import { newId, useStoredState } from './storage';
 
 export type Task = {
   id: string;
@@ -13,10 +13,7 @@ export type Task = {
 type TaskMap = Record<string, Task[]>;
 
 const STORAGE_KEY = 'orbit.tasks.v1';
-
-function newId(): string {
-  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
-}
+const EMPTY: TaskMap = {};
 
 function isTask(value: unknown): value is Task {
   const t = value as Partial<Task> | null;
@@ -34,71 +31,36 @@ function parseTasks(raw: string): TaskMap {
   return clean;
 }
 
+/** Todos: Aufgaben, die an einem bestimmten Tag erledigt werden sollen. */
 export function useTasks() {
-  const [tasks, setTasks] = useState<TaskMap>({});
-  // `loaded`: Lesen ist fertig (die UI darf erscheinen). `canSave`: Lesen hat geklappt, Speichern ist sicher.
-  const [loaded, setLoaded] = useState(false);
-  const [canSave, setCanSave] = useState(false);
+  const { value: tasks, setValue: setTasks, loaded } = useStoredState(STORAGE_KEY, parseTasks, EMPTY);
 
-  useEffect(() => {
-    const load = async () => {
-      // Ein zweiter Versuch, falls das Lesen nur kurz hakt.
-      const raw = await AsyncStorage.getItem(STORAGE_KEY).catch(() => AsyncStorage.getItem(STORAGE_KEY));
-      if (raw) {
-        let clean: TaskMap = {};
-        try {
-          clean = parseTasks(raw);
-        } catch {}
-        // Ging beim Einlesen etwas verloren (kaputtes JSON, unbekannte Felder), das Original sichern,
-        // bevor es beim nächsten Speichern überschrieben wird. Jede Sicherung bekommt einen eigenen Schlüssel.
-        if (JSON.stringify(clean) !== raw) {
-          await AsyncStorage.setItem(`${STORAGE_KEY}.backup.${Date.now()}`, raw).catch(() => {});
-        }
-        setTasks(clean);
-      }
-      setCanSave(true);
-    };
-    // Lesen endgültig fehlgeschlagen: nicht speichern, damit nie `{}` über echte Daten geschrieben wird.
-    load()
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-  }, []);
+  const add = useCallback(
+    (day: string, title: string) => {
+      const trimmed = title.trim();
+      if (!trimmed) return;
+      const task: Task = { id: newId(), title: trimmed, done: false, createdAt: Date.now() };
+      setTasks((prev) => ({ ...prev, [day]: [...(prev[day] ?? []), task] }));
+    },
+    [setTasks],
+  );
 
-  useEffect(() => {
-    if (!canSave) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)).catch(() => {});
-  }, [tasks, canSave]);
+  const toggle = useCallback(
+    (day: string, id: string) => {
+      setTasks((prev) => ({
+        ...prev,
+        [day]: (prev[day] ?? []).map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
+      }));
+    },
+    [setTasks],
+  );
 
-  // Im Browser: Änderungen aus einem anderen Tab übernehmen, statt sie später zu überschreiben.
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== STORAGE_KEY && e.key !== null) return;
-      try {
-        setTasks(e.newValue ? parseTasks(e.newValue) : {});
-      } catch {}
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
-
-  const add = useCallback((day: string, title: string) => {
-    const trimmed = title.trim();
-    if (!trimmed) return;
-    const task: Task = { id: newId(), title: trimmed, done: false, createdAt: Date.now() };
-    setTasks((prev) => ({ ...prev, [day]: [...(prev[day] ?? []), task] }));
-  }, []);
-
-  const toggle = useCallback((day: string, id: string) => {
-    setTasks((prev) => ({
-      ...prev,
-      [day]: (prev[day] ?? []).map((t) => (t.id === id ? { ...t, done: !t.done } : t)),
-    }));
-  }, []);
-
-  const remove = useCallback((day: string, id: string) => {
-    setTasks((prev) => ({ ...prev, [day]: (prev[day] ?? []).filter((t) => t.id !== id) }));
-  }, []);
+  const remove = useCallback(
+    (day: string, id: string) => {
+      setTasks((prev) => ({ ...prev, [day]: (prev[day] ?? []).filter((t) => t.id !== id) }));
+    },
+    [setTasks],
+  );
 
   return { tasks, loaded, add, toggle, remove };
 }

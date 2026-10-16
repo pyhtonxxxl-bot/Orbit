@@ -39,3 +39,18 @@ export function enterActivates(onPress?: () => void) {
     },
   };
 }
+
+/**
+ * Leertaste auf einem fokussierten Kästchen (role="checkbox") schaltet um. react-native-web tut das
+ * nur bei role="button". Als Spread verwenden: `<Pressable {...spaceToggles(toggle)} />`.
+ */
+export function spaceToggles(onToggle?: () => void) {
+  if (!isWeb || !onToggle) return {};
+  return {
+    onKeyDown: (e: WebKeyEvent & { repeat?: boolean }) => {
+      if (e.key !== ' ' || e.target !== e.currentTarget || e.repeat) return;
+      e.preventDefault();
+      onToggle();
+    },
+  };
+}

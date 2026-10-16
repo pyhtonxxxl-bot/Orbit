@@ -33,7 +33,7 @@
 | --- | --- |
 | **Trainingspläne** | Datenmodell (Plan → Tag → Übung → Satz/Wdh./Gewicht), Drag & Drop zum Sortieren, Timer (Pausen), Diagramme für Fortschritt |
 | **Food-Tracking** | Lebensmittel-Datenbank (z. B. **Open Food Facts**, kostenlos), Barcode-Scanner (`expo-camera`), Kalorien- und Makro-Rechnung |
-| **Life-Tracking / Habits** | Streaks, Heatmaps, Wochenstatistik |
+| **Life-Tracking / Habits** | Erledigt: Habits mit Wochenraster und Serie. Als Nächstes: Heatmap übers Jahr, Wochenstatistik, Reihenfolge ändern |
 | **Diagramme** | `victory-native` oder `react-native-svg`, schlicht im gleichen Graustufen-Stil |
 | **Benachrichtigungen** | `expo-notifications` (Erinnerungen fürs Training oder Wasser) |
 | **Apple Health** | Schritte und Workouts importieren (braucht einen Development Build) |
@@ -49,7 +49,7 @@
 
 ## Nächste Schritte
 
-1. **Tab-Navigation** (Expo Router ist schon eingerichtet): minimale Tabs *Woche · Training · Essen*, am PC als schlanke Seitenleiste
+1. **Startseite anpassen** wie in Notion: Bänder ein- und ausblenden, Reihenfolge ändern
 2. **Training**: Pläne anlegen, Übungen per Drag & Drop sortieren, im Workout Sätze abhaken (gleiche Checkbox wie im Planer)
 3. **Essen**: Mahlzeiten pro Tag, Suche via Open Food Facts, Barcode-Scan, Tagesziel als dünner Balken
 4. **Reanimated** (schon installiert) für weichere Animationen und Swipe zwischen Wochen
