@@ -8,7 +8,7 @@ import { enterActivates } from '../../lib/web';
 import { colors, fonts } from '../../theme';
 import { Icon, type IconName } from '../Icon';
 
-type Href = '/' | '/habits' | '/todos';
+type Href = '/' | '/habits' | '/todos' | '/einstellungen';
 type Item = { label: string; icon: IconName; href?: Href; soon?: boolean };
 
 // Startseite zuerst, dann die Werkzeuge. Was „bald“ ist, steht schon da, ist aber noch nicht klickbar.
@@ -19,6 +19,7 @@ const TOOLS: Item[] = [
   { label: 'Training', icon: 'training', soon: true },
   { label: 'Ernährung', icon: 'food', soon: true },
 ];
+const SETTINGS: Item = { label: 'Einstellungen', icon: 'settings', href: '/einstellungen' };
 
 type Props = {
   /** Nach einem Klick, z. B. um die Schublade am Handy zu schließen. */
@@ -63,6 +64,7 @@ export function Sidebar({ onNavigate, onLock, onClose }: Props) {
       </View>
 
       <View style={styles.spacer} />
+      <NavItem item={SETTINGS} active={pathname === SETTINGS.href} canHover={canHover} onPress={go} />
       <NavItem item={{ label: 'Sperren', icon: 'lock' }} active={false} canHover={canHover} onPress={onLock} />
     </ScrollView>
   );

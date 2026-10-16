@@ -2,9 +2,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { colors } from '../theme';
 
-export function Checkbox({ checked }: { checked: boolean }) {
+/** `due`: Aufgabe mit Fälligkeit, der leere Rahmen ist dann orange. */
+export function Checkbox({ checked, due = false }: { checked: boolean; due?: boolean }) {
   return (
-    <View style={[styles.box, checked && styles.boxChecked]}>
+    <View style={[styles.box, due && styles.boxDue, checked && styles.boxChecked]}>
       {checked && <Tick />}
     </View>
   );
@@ -37,6 +38,10 @@ const styles = StyleSheet.create({
     borderColor: colors.control,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  boxDue: {
+    borderWidth: 2,
+    borderColor: colors.accent,
   },
   boxChecked: {
     backgroundColor: colors.accent,

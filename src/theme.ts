@@ -18,7 +18,10 @@ export const colors = {
   focus: 'rgba(0, 0, 0, 0.35)',
 
   accent: '#E4642B',
+  // Dasselbe Orange, dunkler: für kleine Schrift auf Weiß (Kontrast 5:1).
+  accentText: '#B84A1C',
   white: '#FFFFFF',
+  shadow: '#000000',
 
   // Sperrbildschirm: blendet aus Weiß ein. Hintergrund = Rand des Statuenbilds
   // (scripts/make-lock-image.py), dunkle Wisch-Leiste wie ein Hardware-Schalter.

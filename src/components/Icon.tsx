@@ -3,7 +3,19 @@ import Svg, { Path, Rect } from 'react-native-svg';
 
 import { colors } from '../theme';
 
-export type IconName = 'home' | 'habit' | 'todo' | 'training' | 'food' | 'menu' | 'close' | 'arrow' | 'lock';
+export type IconName =
+  | 'home'
+  | 'habit'
+  | 'todo'
+  | 'training'
+  | 'food'
+  | 'menu'
+  | 'close'
+  | 'arrow'
+  | 'lock'
+  | 'plus'
+  | 'settings'
+  | 'external';
 
 type Props = {
   name: IconName;
@@ -49,6 +61,21 @@ export function Icon({ name, size = 20, color = colors.ink, strokeWidth = 1.75 }
         {name === 'menu' && <Path d="M4 7h16M4 12h16M4 17h10" {...stroke} />}
         {name === 'close' && <Path d="M6 6l12 12M18 6 6 18" {...stroke} />}
         {name === 'arrow' && <Path d="M5 12h14M13 6l6 6-6 6" {...stroke} />}
+        {name === 'plus' && <Path d="M12 5v14M5 12h14" {...stroke} />}
+        {/* Einstellungen: drei Schieberegler. */}
+        {name === 'settings' && (
+          <Path
+            d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1M15 5v4M9 10v4M17 15v4"
+            {...stroke}
+          />
+        )}
+        {/* Link öffnen: Pfeil aus dem Kasten. */}
+        {name === 'external' && (
+          <>
+            <Path d="M13.5 4.5h6v6M19.5 4.5 11 13" {...stroke} />
+            <Path d="M17.5 13.5v4.5a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V8A1.5 1.5 0 0 1 6 6.5h4.5" {...stroke} />
+          </>
+        )}
         {name === 'lock' && (
           <>
             <Rect x={5} y={10.5} width={14} height={10} rx={2.5} {...stroke} />

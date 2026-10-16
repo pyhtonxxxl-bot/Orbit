@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, fonts, space } from '../theme';
+import { Icon } from './Icon';
 
 type Props = {
   week: number;
@@ -14,6 +15,8 @@ type Props = {
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
+  /** PC: Plus rechts für eine neue Aufgabe (am Handy übernimmt das der schwebende Knopf). */
+  onAdd?: () => void;
 };
 
 export function WeekFooter({
@@ -26,6 +29,7 @@ export function WeekFooter({
   onPrev,
   onNext,
   onToday,
+  onAdd,
 }: Props) {
   const nav = (
     <View style={styles.nav}>
@@ -60,8 +64,11 @@ export function WeekFooter({
       <View style={[styles.footer, styles.footerWide, { paddingBottom: 10 + bottomInset }]}>
         <View style={[styles.side, styles.sideLeft]}>{todayLink}</View>
         {nav}
-        <View style={[styles.side, styles.sideRight]}>
-          {canHover && <Text style={styles.hint}>← → Woche wechseln · T heute</Text>}
+        <View style={[styles.side, styles.sideRight, onAdd && styles.sideRightAdd]}>
+          {canHover && (
+            <Text style={styles.hint}>{onAdd ? '← → Woche · T heute · N neu' : '← → Woche wechseln · T heute'}</Text>
+          )}
+          {onAdd && <AddButton onPress={onAdd} canHover={canHover} />}
         </View>
       </View>
     );
@@ -72,6 +79,28 @@ export function WeekFooter({
       {nav}
       {todayLink}
     </View>
+  );
+}
+
+/** Runder dunkler Plus-Knopf, wie der Knopf der Wisch-Leiste. Auch als schwebender Knopf am Handy. */
+export function AddButton({ onPress, canHover, size = 40 }: { onPress: () => void; canHover: boolean; size?: number }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      role="button"
+      aria-label="Neue Aufgabe"
+      style={({ pressed }) => [
+        styles.add,
+        { width: size, height: size, borderRadius: size / 2 },
+        canHover && hovered && styles.addHovered,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Icon name="plus" size={size * 0.5} color={colors.white} strokeWidth={2} />
+    </Pressable>
   );
 }
 
@@ -132,6 +161,26 @@ const styles = StyleSheet.create({
   },
   sideRight: {
     justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
+  // Mit Plus: Tastatur-Hinweis rechtsbündig, ganz außen das Plus.
+  sideRightAdd: {
+    justifyContent: 'flex-end',
+    gap: 16,
+  },
+  add: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.pill,
+    cursor: 'pointer',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  addHovered: {
+    opacity: 0.85,
   },
   nav: {
     flexDirection: 'row',

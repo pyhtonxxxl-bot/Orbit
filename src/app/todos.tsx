@@ -1,18 +1,23 @@
 import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { LayoutAnimation, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DayRow } from '../components/DayRow';
-import { WeekFooter } from '../components/WeekFooter';
+import { TaskPanel } from '../components/TaskPanel';
+import { AddButton, WeekFooter } from '../components/WeekFooter';
 import { PageHeader } from '../components/shell/PageHeader';
 import { WEEKDAYS, addDays, dateKey, formatWeekRange, isoWeek } from '../lib/date';
 import { useShell } from '../lib/shell';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useNow } from '../lib/useNow';
+import { useTags } from '../lib/useTags';
+import { useTaskPanel } from '../lib/useTaskPanel';
 import { useTasks } from '../lib/useTasks';
 import { useWeekNav } from '../lib/useWeekNav';
+import { isDialogOpen } from '../lib/web';
 import { colors } from '../theme';
 
 const tap = () => Haptics.selectionAsync().catch(() => {});
@@ -30,8 +35,9 @@ export default function TodosScreen() {
   // Ohne feste Seitenleiste gibt es oben eine Kopfzeile mit Menü-Symbol; sie übernimmt dann den Statusleisten-Abstand.
   const hasHeader = !!shell && !shell.sidebarDocked;
   const now = useNow();
-  const { tasks, loaded, add, toggle, remove } = useTasks();
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const { tasks, loaded, add, update, toggle, remove } = useTasks();
+  const { tags } = useTags();
+  const { panel, task: panelTask, openNew, openTask, close, moveTo } = useTaskPanel(tasks);
   const keyboard = useKeyboardInset();
 
   // Am Handy ist beim Start der heutige Tag aufgeklappt, wie ein aufgeschlagenes Notizbuch.
@@ -45,6 +51,29 @@ export default function TodosScreen() {
     setExpanded(backToCurrent ? TODAY : null),
   );
   const days = WEEKDAYS.map((label, i) => ({ label, date: addDays(weekStart, i) }));
+
+  // Neue Aufgabe ohne bestimmten Tag (Plus, Taste N): am Handy der offene Tag, sonst heute bzw. Montag der Woche.
+  const defaultDay = !wide && expandedKey ? expandedKey : isCurrentWeek ? todayKey : dateKey(weekStart);
+  const newRef = useRef(() => openNew(defaultDay));
+  useEffect(() => {
+    newRef.current = () => openNew(defaultDay);
+  });
+
+  // Tastatur am PC: N legt eine neue Aufgabe an.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || isDialogOpen()) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        newRef.current();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   const toggleDay = (key: string) => {
     animate();
@@ -70,6 +99,7 @@ export default function TodosScreen() {
       onPrev={() => shiftWeek(-1)}
       onNext={() => shiftWeek(1)}
       onToday={() => shiftWeek('today')}
+      onAdd={() => openNew(defaultDay)}
     />
   );
 
@@ -103,22 +133,14 @@ export default function TodosScreen() {
               canHover={canHover}
               topInset={i === 0 && !hasHeader ? insets.top : 0}
               tasks={tasks[key] ?? []}
-              draft={drafts[key] ?? ''}
-              onDraftChange={(text) => setDrafts((prev) => ({ ...prev, [key]: text }))}
+              selectedId={panel?.mode === 'edit' ? panel.id : undefined}
               onPressHeader={() => toggleDay(key)}
-              onAdd={(title) => {
-                animate();
-                add(key, title);
-              }}
+              onAdd={() => openNew(key)}
               onToggle={(id) => {
                 tap();
                 toggle(key, id);
               }}
-              onRemove={(id) => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-                animate();
-                remove(key, id);
-              }}
+              onOpen={(id) => openTask(key, id)}
             />
           );
         })}
@@ -129,6 +151,50 @@ export default function TodosScreen() {
 
       {/* Leicht deckende Fläche hinter der Statusleiste, damit Uhrzeit und Akku lesbar bleiben. */}
       {!hasHeader && <View style={[styles.statusBar, { height: insets.top }]} />}
+
+      {/* Handy: schwebendes Plus unten rechts, in Daumennähe. */}
+      {!wide && !panel && (
+        <View style={[styles.fab, { bottom: insets.bottom + 20 }]}>
+          <AddButton onPress={() => openNew(defaultDay)} canHover={canHover} size={56} />
+        </View>
+      )}
+
+      {panel && (
+        <TaskPanel
+          key={panel.mode === 'edit' ? panel.id : `new-${panel.day}`}
+          state={panel}
+          task={panelTask}
+          tags={tags}
+          todayKey={todayKey}
+          wide={wide}
+          onClose={close}
+          onCreate={(day, details) => {
+            animate();
+            add(day, details);
+          }}
+          onUpdate={(patch) => {
+            if (panel.mode !== 'edit') return;
+            if ('due' in patch) animate();
+            moveTo(update(panel.day, panel.id, patch));
+          }}
+          onToggle={() => {
+            if (panel.mode !== 'edit') return;
+            tap();
+            toggle(panel.day, panel.id);
+          }}
+          onRemove={() => {
+            if (panel.mode !== 'edit') return;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+            animate();
+            remove(panel.day, panel.id);
+            close();
+          }}
+          onEditTags={() => {
+            close();
+            router.navigate('/einstellungen');
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -151,6 +217,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
   },
   statusBar: {
     position: 'absolute',

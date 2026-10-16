@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.18,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
