@@ -2,16 +2,19 @@ import { useEffect, useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 
 import { WIDE_BREAKPOINT, space } from '../theme';
+import { useShell } from './shell';
 
 export type Layout = {
   /** PC und breite Tablets: alle Tage offen, Tag links, Aufgaben rechts. */
   wide: boolean;
-  /** Seitenrand, wächst mit der Fensterbreite. */
+  /** Seitenrand, wächst mit der verfügbaren Breite. */
   gutter: number;
 };
 
+/** Layout nach der Breite, die neben der Seitenleiste wirklich übrig bleibt. */
 export function useLayout(): Layout {
-  const { width } = useWindowDimensions();
+  const window = useWindowDimensions();
+  const width = useShell()?.contentWidth ?? window.width;
   const wide = width >= WIDE_BREAKPOINT;
   const gutter = wide ? space.gutterWide : width >= 600 ? space.gutterTablet : space.gutter;
   return { wide, gutter };

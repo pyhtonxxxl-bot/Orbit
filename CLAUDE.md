@@ -2,15 +2,23 @@
 
 # Orbit: Projektregeln für Claude Code
 
-Orbit ist eine minimalistische Life-Tracking-App (Expo SDK 57, Expo Router, TypeScript). Sie läuft auf iPhone, Android und im Browser am PC. Version 1 ist der Wochen-Planer. Als Nächstes kommen Trainingspläne und Food-Tracking (siehe `docs/ROADMAP.md`).
+Orbit ist eine minimalistische Life-Tracking-App, ein privater Manager statt zehn einzelner Apps (Expo SDK 57, Expo Router, TypeScript). Sie läuft auf iPhone, Android und im Browser am PC. Als Nächstes kommen Trainingspläne und Food-Tracking (siehe `docs/ROADMAP.md`).
+
+## Aufbau
+- **Start:** `src/components/gate/IntroGate.tsx`: weißer Screen, dann eine Foto-Collage (Statue → Statuen-Auge → echtes Auge → Iris, Bilder in `assets/intro/`) hin und zurück. Danach der Sperrbildschirm: am Handy die Wisch-Leiste (`SlideToUnlock`) nach rechts ziehen, am PC die Leertaste gedrückt halten (oder ziehen). Im Browser überspringt `?intro=0` beides (für Tests).
+- **Sperren:** „Sperren“ in der Seitenleiste schiebt den Sperrbildschirm wieder herein. Die App bleibt darunter geladen (Seite und Eingaben bleiben erhalten) und ist im Browser solange `inert`.
+- **Hülle:** `src/components/shell/`: Seitenleiste ab 1100 px fest links, darunter als Schublade über das Menü-Symbol (`PageHeader`). Browser-Helfer (inert, Fokus, Enter auf Links) liegen in `src/lib/web.ts`.
+- **Seiten:** `/` Startseite (Willkommen, heute, Werkzeuge als Bänder), `/woche` Wochenplaner.
 
 ## Design ist das Wichtigste
 - Look: gestapelte Tagesbänder in Graustufen, von hell (Montag) nach dunkel (Sonntag), dazu genau **eine** Akzentfarbe (Orange `colors.accent`). Schrift: Barlow (ExtraBold für Tage, Regular/Medium für Text).
 - Farben, Schriften und Abstände **nur** über `src/theme.ts`, keine Hex-Werte in Komponenten.
 - Jede UI-Änderung muss in **beiden** Layouts gut aussehen (`src/lib/useLayout.ts`):
-  - **compact** (< 900 px, Handy/Tablet hoch): Akkordeon, ein Tag offen.
-  - **wide** (≥ 900 px, PC/Tablet quer): alle Tage offen, Tag + Datum links, Aufgaben rechts; die Woche soll auf einen 1280×720-Bildschirm passen.
-- Am PC: Hover-Zustände, Mauszeiger (`cursor: 'pointer'`), Tastatur (← → Woche, T heute, Enter fügt hinzu), kein Browser-Fokusrahmen in Eingabefeldern.
+  - **compact** (< 860 px Inhaltsbreite, Handy/Tablet hoch): Akkordeon, ein Tag offen.
+  - **wide** (≥ 860 px Inhaltsbreite, PC/Tablet quer): alle Tage offen, Tag + Datum links, Aufgaben rechts; die Woche soll auf einen 1280×720-Bildschirm passen.
+  - Inhaltsbreite = Fenster minus Seitenleiste (`useShell().contentWidth`).
+- Am PC: Hover-Zustände, Mauszeiger (`cursor: 'pointer'`), Tastatur (Leertaste halten entsperrt, ← → Woche, T heute, Enter fügt hinzu), kein Browser-Fokusrahmen in Eingabefeldern.
+- Icons: eigene Linien-Icons in `src/components/Icon.tsx` (react-native-svg), keine Icon-Fonts.
 - UI-Texte auf **Deutsch**.
 
 ## Code

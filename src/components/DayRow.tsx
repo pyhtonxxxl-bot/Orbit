@@ -15,6 +15,8 @@ type Props = {
   expanded: boolean;
   /** Desktop-Layout: Tag links, Aufgaben rechts, immer offen. */
   wide: boolean;
+  /** Teilt sich übrige Höhe mit den anderen Bändern (Standard). Auf der Startseite aus. */
+  fill?: boolean;
   gutter: number;
   canHover: boolean;
   topInset?: number;
@@ -22,7 +24,8 @@ type Props = {
   /** Halb getippte Aufgabe. Liegt außerhalb, damit sie Zuklappen, Wochenwechsel und Mitternacht übersteht. */
   draft: string;
   onDraftChange: (text: string) => void;
-  onPressHeader: () => void;
+  /** Antippen klappt den Tag auf/zu (Handy). Ohne Handler bleibt der Kopf ein fester Titel, z. B. auf der Startseite. */
+  onPressHeader?: () => void;
   onAdd: (title: string) => void;
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
@@ -36,6 +39,7 @@ export function DayRow({
   isToday,
   expanded,
   wide,
+  fill = true,
   gutter,
   canHover,
   topInset = 0,
@@ -81,7 +85,7 @@ export function DayRow({
   // PC: Datum neben dem Tag, damit die ganze Woche auf einen Bildschirm passt.
   if (wide) {
     return (
-      <View style={[styles.row, { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }]}>
+      <View style={[fill && styles.row, { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }]}>
         <View style={styles.innerWide}>
           <View style={styles.side}>
             <View style={styles.headerLineWide}>
@@ -98,39 +102,43 @@ export function DayRow({
     );
   }
 
+  const headerStyle = [
+    styles.compactHeader,
+    !expanded && styles.compactHeaderCollapsed,
+    { paddingTop: rowY + topInset, paddingBottom: expanded ? 0 : rowY, paddingHorizontal: gutter },
+  ];
+  const headerContent = (
+    <View style={styles.compactInner}>
+      <View style={styles.headerLine}>
+        <Text style={styles.day} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.3}>
+          {label.toUpperCase()}
+        </Text>
+        {!expanded && tasks.length > 0 && (
+          <Text style={styles.count}>
+            {done}/{tasks.length}
+          </Text>
+        )}
+      </View>
+      {(expanded || isToday) && dateText}
+    </View>
+  );
+
   // Handy: das ganze Band ist antippbar und klappt den Tag auf oder zu.
   return (
-    <View style={[styles.row, { backgroundColor: color }]}>
-      <Pressable
-        onPress={onPressHeader}
-        role="button"
-        aria-expanded={expanded}
-        aria-label={`${label}, ${formatDate(date)}${isToday ? ', heute' : ''}${tasks.length ? `, ${done} von ${tasks.length} erledigt` : ''}`}
-        style={[
-          styles.compactHeader,
-          !expanded && styles.compactHeaderCollapsed,
-          { paddingTop: rowY + topInset, paddingBottom: expanded ? 0 : rowY, paddingHorizontal: gutter },
-        ]}
-      >
-        <View style={styles.compactInner}>
-          <View style={styles.headerLine}>
-            <Text
-              style={styles.day}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              maxFontSizeMultiplier={1.3}
-            >
-              {label.toUpperCase()}
-            </Text>
-            {!expanded && tasks.length > 0 && (
-              <Text style={styles.count}>
-                {done}/{tasks.length}
-              </Text>
-            )}
-          </View>
-          {(expanded || isToday) && dateText}
-        </View>
-      </Pressable>
+    <View style={[fill && styles.row, { backgroundColor: color }]}>
+      {onPressHeader ? (
+        <Pressable
+          onPress={onPressHeader}
+          role="button"
+          aria-expanded={expanded}
+          aria-label={`${label}, ${formatDate(date)}${isToday ? ', heute' : ''}${tasks.length ? `, ${done} von ${tasks.length} erledigt` : ''}`}
+          style={headerStyle}
+        >
+          {headerContent}
+        </Pressable>
+      ) : (
+        <View style={[headerStyle, styles.staticHeader]}>{headerContent}</View>
+      )}
 
       {expanded && (
         // Eigene (wirkungslose) Tippfläche: sonst ordnen Touch-Browser ein Tippen knapp über dem
@@ -138,6 +146,7 @@ export function DayRow({
         <Pressable
           accessible={false}
           focusable={false}
+          tabIndex={-1}
           style={[styles.compactBody, { paddingHorizontal: gutter, paddingBottom: rowY }]}
         >
           <View style={[styles.compactInner, styles.body]}>{body}</View>
@@ -195,6 +204,9 @@ const styles = StyleSheet.create({
   compactHeader: {
     cursor: 'pointer',
   },
+  staticHeader: {
+    cursor: 'auto',
+  },
   // Zugeklappt füllt die Tippfläche das ganze Band, der Inhalt sitzt mittig.
   compactHeaderCollapsed: {
     flexGrow: 1,
@@ -214,8 +226,9 @@ const styles = StyleSheet.create({
     maxWidth: CONTENT_MAX_WIDTH,
     gap: 48,
   },
+  // 43 %: „DONNERSTAG“ und Datum passen bei 1280 px mit Seitenleiste noch in eine Zeile.
   side: {
-    flexBasis: '40%',
+    flexBasis: '43%',
     maxWidth: 460,
   },
   headerLine: {
