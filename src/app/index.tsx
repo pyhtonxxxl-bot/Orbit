@@ -8,12 +8,15 @@ import { DayRow } from '../components/DayRow';
 import { HabitItem } from '../components/HabitItem';
 import { Icon, type IconName } from '../components/Icon';
 import { SectionLink } from '../components/SectionLink';
+import { TaskPanel } from '../components/TaskPanel';
 import { PageHeader } from '../components/shell/PageHeader';
 import { WEEKDAYS, addDays, dateKey, startOfWeek } from '../lib/date';
 import { useShell } from '../lib/shell';
 import { streak, useHabits, type Habit } from '../lib/useHabits';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useNow } from '../lib/useNow';
+import { useTags } from '../lib/useTags';
+import { useTaskPanel } from '../lib/useTaskPanel';
 import { useTasks } from '../lib/useTasks';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
 import { enterActivates, heading } from '../lib/web';
@@ -38,7 +41,8 @@ export default function HomeScreen() {
   const now = useNow();
   const tasks = useTasks();
   const habits = useHabits();
-  const [draft, setDraft] = useState('');
+  const tags = useTags();
+  const { panel, task: panelTask, openNew, openTask, close, moveTo } = useTaskPanel(tasks.tasks);
   const keyboard = useKeyboardInset();
 
   if (!tasks.loaded || !habits.loaded) return <View style={styles.root} />;
@@ -139,14 +143,13 @@ export default function HomeScreen() {
           gutter={gutter}
           canHover={canHover}
           tasks={today}
-          draft={draft}
-          onDraftChange={setDraft}
-          onAdd={(title) => tasks.add(todayKey, title)}
+          selectedId={panel?.mode === 'edit' ? panel.id : undefined}
+          onAdd={() => openNew(todayKey)}
           onToggle={(id) => {
             tap();
             tasks.toggle(todayKey, id);
           }}
-          onRemove={(id) => tasks.remove(todayKey, id)}
+          onOpen={(id) => openTask(todayKey, id)}
         />
 
         <ToolBand
@@ -172,6 +175,36 @@ export default function HomeScreen() {
           <Text style={styles.footerText}>Startseite anpassen · kommt bald</Text>
         </View>
       </ScrollView>
+
+      {panel && (
+        <TaskPanel
+          key={panel.mode === 'edit' ? panel.id : `new-${panel.day}`}
+          state={panel}
+          task={panelTask}
+          tags={tags.tags}
+          todayKey={todayKey}
+          wide={wide}
+          onClose={close}
+          onCreate={(day, details) => tasks.add(day, details)}
+          onUpdate={(patch) => {
+            if (panel.mode === 'edit') moveTo(tasks.update(panel.day, panel.id, patch));
+          }}
+          onToggle={() => {
+            if (panel.mode !== 'edit') return;
+            tap();
+            tasks.toggle(panel.day, panel.id);
+          }}
+          onRemove={() => {
+            if (panel.mode !== 'edit') return;
+            tasks.remove(panel.day, panel.id);
+            close();
+          }}
+          onEditTags={() => {
+            close();
+            router.navigate('/einstellungen');
+          }}
+        />
+      )}
     </View>
   );
 }

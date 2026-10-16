@@ -86,3 +86,19 @@ export function isoWeek(date: Date): number {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
+
+/** Umkehrung von `dateKey()`: `2026-10-13` → 13. Oktober 2026, 00:00 Ortszeit. */
+export function fromDateKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** `Freitag, 16. Oktober 2026` */
+export function formatLongDate(date: Date): string {
+  return `${WEEKDAYS[(date.getDay() + 6) % 7]}, ${formatDate(date)}`;
+}
+
+/** `Oktober 2026` */
+export function formatMonth(date: Date): string {
+  return `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}

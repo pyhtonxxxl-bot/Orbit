@@ -5,7 +5,8 @@ Eine minimalistische Life-Tracking-App fürs Handy **und** den PC, dein privater
 - **Start:** ein ruhiger Sperrbildschirm: links ein unscharfer Statuenkopf, rechts ORBIT. Du entsperrst am Handy, indem du die Leiste nach rechts wischst, am PC mit **gedrückter Leertaste**.
 - **Startseite:** Begrüßung, dann dein Tag aufgeteilt in **Habits** (jeden Tag dasselbe abhaken) und **Todos** (Aufgaben für heute), darunter die kommenden Werkzeuge. Die Seitenleiste (am Handy über das Menü-Symbol) führt zu allen Seiten.
 - **Habits:** pro Habit ein Band mit den sieben Tagen der Woche zum Abhaken und der Serie („10 Tage in Folge“).
-- **Todos:** ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/), sieben gestapelte Tagesbänder von hell nach dunkel.
+- **Todos:** ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/), sieben gestapelte Tagesbänder von hell nach dunkel. Jede Aufgabe kann eine Fälligkeit, einen Link und Tags haben.
+- **Einstellungen:** deine Tags (z. B. Schule) anlegen, umbenennen und löschen.
 
 **Am PC** liegt die ganze Woche offen da, links der Tag, rechts die Aufgaben:
 
@@ -20,7 +21,12 @@ Eine minimalistische Life-Tracking-App fürs Handy **und** den PC, dein privater
 ## Was die Todos können
 
 - Woche von Montag bis Sonntag, heute mit Datum und Uhrzeit
-- Aufgaben hinzufügen (Enter, das Feld bleibt aktiv für die nächste), abhaken (klicken/tippen), löschen (am PC: × beim Drüberfahren, am Handy: lange drücken)
+- Neue Aufgabe: am PC einfach auf einen Tag klicken, oder „+ Aufgabe hinzufügen“, das Plus unten (am Handy schwebend unten rechts) bzw. die Taste **N**
+- In der Liste steht nur das Kästchen zum Abhaken und die Beschreibung. Ein Klick auf die Beschreibung öffnet ein kleines Fenster (am PC rechts über der Liste, am Handy von unten) mit:
+  - **Fällig:** die Aufgabe wandert an diesen Tag und ist orange markiert („Fällig“, danach „Überfällig“)
+  - **Link:** einfügen und mit einem Klick öffnen
+  - **Tags:** z. B. Schule, Arbeit, Privat
+  - Schließen mit × oder **Escape**, löschen mit „Aufgabe löschen“
 - Zwischen den Wochen blättern, am PC auch mit den Tasten **←** **→**, **T** springt zu heute
 - Speichert lokal: am Handy auf dem Gerät, am PC im Browser
 - Ab 860 px Inhaltsbreite (Fenster ohne Seitenleiste) automatisch das PC-Layout, darunter das Handy-Layout
@@ -85,10 +91,13 @@ src/app/todos.tsx          Der Wochen-Planer
 src/components/gate/       Sperrbildschirm und Wisch-Leiste zum Entsperren
 src/components/shell/      Seitenleiste, Schublade fürs Handy, Kopfzeile
 assets/lock/               Statuenkopf (Original und unscharfe Fassung, siehe scripts/make-lock-image.py)
-src/components/            DayRow, TaskItem, HabitRow, HabitItem, Checkbox, WeekFooter
+src/app/einstellungen.tsx  Einstellungen (Tags)
+src/components/            DayRow, TaskItem, TaskPanel, DatePicker, HabitRow, HabitItem, Checkbox, WeekFooter
 src/lib/date.ts            Wochen- und Datumslogik (deutsch)
 src/lib/storage.ts         Lokales Speichern (gemeinsam für Todos und Habits)
-src/lib/useTasks.ts        Todos
+src/lib/useTasks.ts        Todos (mit Fälligkeit, Link, Tags)
+src/lib/useTags.ts         Tags
+src/lib/useTaskPanel.ts    Welche Aufgabe im Fenster offen ist
 src/lib/useHabits.ts       Habits und Serien
 src/lib/useLayout.ts       Handy- oder PC-Layout je nach Fensterbreite
 src/theme.ts               Farben, Schrift, Abstände (hier wird der Look justiert)

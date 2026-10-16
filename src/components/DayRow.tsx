@@ -1,10 +1,11 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { formatDate, formatTime } from '../lib/date';
+import { dateKey, formatDate, formatTime } from '../lib/date';
 import type { Task } from '../lib/useTasks';
 import { heading } from '../lib/web';
 import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
+import { Icon } from './Icon';
 import { TaskItem } from './TaskItem';
 
 type Props = {
@@ -30,14 +31,14 @@ type Props = {
   canHover: boolean;
   topInset?: number;
   tasks: Task[];
-  /** Halb getippte Aufgabe. Liegt außerhalb, damit sie Zuklappen, Wochenwechsel und Mitternacht übersteht. */
-  draft: string;
-  onDraftChange: (text: string) => void;
+  /** Aufgabe, die gerade im Fenster offen ist (wird hervorgehoben). */
+  selectedId?: string;
   /** Antippen klappt den Tag auf/zu (Handy). Ohne Handler bleibt der Kopf ein fester Titel, z. B. auf der Startseite. */
   onPressHeader?: () => void;
-  onAdd: (title: string) => void;
+  /** Neue Aufgabe für diesen Tag: öffnet das Fenster. Am PC reicht ein Klick irgendwo aufs Band. */
+  onAdd: () => void;
   onToggle: (id: string) => void;
-  onRemove: (id: string) => void;
+  onOpen: (id: string) => void;
 };
 
 export function DayRow({
@@ -57,15 +58,17 @@ export function DayRow({
   canHover,
   topInset = 0,
   tasks,
-  draft,
-  onDraftChange,
+  selectedId,
   onPressHeader,
   onAdd,
   onToggle,
-  onRemove,
+  onOpen,
 }: Props) {
+  const [hovered, setHovered] = useState(false);
   const done = tasks.filter((t) => t.done).length;
   const rowY = wide ? space.rowYWide : space.rowY;
+  const key = dateKey(date);
+  const todayKey = dateKey(now);
 
   const dateText = (
     <Text style={[styles.date, wide && styles.dateWide]}>
@@ -79,25 +82,35 @@ export function DayRow({
         <TaskItem
           key={task.id}
           task={task}
+          dayKey={key}
+          todayKey={todayKey}
           canHover={canHover}
+          selected={task.id === selectedId}
           onToggle={() => onToggle(task.id)}
-          onRemove={() => onRemove(task.id)}
+          onOpen={() => onOpen(task.id)}
         />
       ))}
-      <TaskInput
-        label={label}
-        alone={wide && tasks.length === 0}
-        draft={draft}
-        onDraftChange={onDraftChange}
-        onAdd={onAdd}
-      />
+      <AddRow label={label} alone={wide && tasks.length === 0} active={canHover && hovered} onPress={onAdd} />
     </>
   );
 
   // PC: Datum neben dem Tag, damit die ganze Woche auf einen Bildschirm passt.
+  // Das ganze Band ist eine Klickfläche für „Neue Aufgabe“ (nur Maus; Tastatur und Screenreader nehmen
+  // die Zeile „Aufgabe hinzufügen“). Klicks auf eine Aufgabe landen bei der Aufgabe, nicht hier.
   if (wide) {
     return (
-      <View style={[fill && styles.row, { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }]}>
+      <Pressable
+        onPress={onAdd}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+        accessible={false}
+        tabIndex={-1}
+        style={[
+          fill && styles.row,
+          styles.bandWide,
+          { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter },
+        ]}
+      >
         <View style={styles.innerWide}>
           <View style={styles.side}>
             <View style={styles.headerLineWide}>
@@ -111,7 +124,7 @@ export function DayRow({
           </View>
           <View style={styles.bodyWide}>{body}</View>
         </View>
-      </View>
+      </Pressable>
     );
   }
 
@@ -177,43 +190,31 @@ export function DayRow({
   );
 }
 
-type TaskInputProps = {
+type AddRowProps = {
   label: string;
+  /** Erste Zeile ohne Aufgaben darüber: sitzt auf der Grundlinie des Tagesnamens. */
   alone: boolean;
-  draft: string;
-  onDraftChange: (text: string) => void;
-  onAdd: (title: string) => void;
+  /** Maus ist über dem Band: deutlicher zeigen, dass ein Klick eine Aufgabe anlegt. */
+  active: boolean;
+  onPress: () => void;
 };
 
-function TaskInput({ label, alone, draft, onDraftChange, onAdd }: TaskInputProps) {
-  const [focused, setFocused] = useState(false);
-  const ref = useRef<TextInput>(null);
-
-  const submit = () => {
-    onAdd(draft);
-    onDraftChange('');
-  };
-
+/** Leise Zeile „+ Aufgabe hinzufügen“ am Ende eines Tages. Öffnet das Fenster für eine neue Aufgabe. */
+function AddRow({ label, alone, active, onPress }: AddRowProps) {
+  const [hovered, setHovered] = useState(false);
+  const strong = active || hovered;
   return (
-    <TextInput
-      ref={ref}
-      value={draft}
-      onChangeText={onDraftChange}
-      onSubmitEditing={submit}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      // Am PC: Escape verlässt das Feld, danach funktionieren ← → und T wieder.
-      onKeyPress={Platform.OS === 'web' ? (e) => e.nativeEvent.key === 'Escape' && ref.current?.blur() : undefined}
-      // Nach Enter im Feld bleiben, um gleich die nächste Aufgabe zu tippen.
-      // `submitBehavior` gilt auf iOS/Android, `blurOnSubmit` braucht react-native-web.
-      submitBehavior="submit"
-      blurOnSubmit={false}
-      placeholder="Aufgabe hinzufügen…"
-      placeholderTextColor={colors.inkFaint}
-      returnKeyType="done"
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      role="button"
       aria-label={`Aufgabe für ${label} hinzufügen`}
-      style={[styles.input, alone && styles.inputAlone, focused && styles.inputFocused]}
-    />
+      style={({ pressed }) => [styles.add, alone && styles.addAlone, pressed && styles.addPressed]}
+    >
+      <Icon name="plus" size={18} color={strong ? colors.ink : colors.inkFaint} strokeWidth={1.75} />
+      <Text style={[styles.addText, strong && styles.addTextStrong]}>Aufgabe hinzufügen</Text>
+    </Pressable>
   );
 }
 
@@ -314,22 +315,33 @@ const styles = StyleSheet.create({
     marginTop: 10,
     maxWidth: 620,
   },
-  input: {
-    marginTop: 6,
-    paddingVertical: 8,
+  bandWide: {
+    cursor: 'pointer',
+  },
+  add: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 10,
+    marginTop: 4,
+    marginHorizontal: -8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    cursor: 'pointer',
+  },
+  addAlone: {
+    marginTop: 0,
+  },
+  addPressed: {
+    opacity: 0.6,
+  },
+  addText: {
     fontFamily: fonts.regular,
     fontSize: 16,
+    color: colors.inkFaint,
+  },
+  addTextStrong: {
     color: colors.ink,
-    outlineWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: 'transparent',
-  },
-  inputAlone: {
-    marginTop: 3,
-    paddingBottom: 4,
-  },
-  // Sichtbarer Fokus ohne Browser-Rahmen: eine feine Linie unter dem Feld.
-  inputFocused: {
-    borderBottomColor: colors.focus,
   },
 });

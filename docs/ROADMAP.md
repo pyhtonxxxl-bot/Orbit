@@ -50,6 +50,7 @@
 ## Nächste Schritte
 
 1. **Startseite anpassen** wie in Notion: Bänder ein- und ausblenden, Reihenfolge ändern
+1. **Aufgaben weiter:** nach Tags filtern, Aufgaben per Drag & Drop auf einen anderen Tag ziehen, Erinnerungen
 2. **Training**: Pläne anlegen, Übungen per Drag & Drop sortieren, im Workout Sätze abhaken (gleiche Checkbox wie im Planer)
 3. **Essen**: Mahlzeiten pro Tag, Suche via Open Food Facts, Barcode-Scan, Tagesziel als dünner Balken
 4. **Reanimated** (schon installiert) für weichere Animationen und Swipe zwischen Wochen
