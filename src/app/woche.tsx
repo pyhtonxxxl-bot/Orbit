@@ -10,6 +10,7 @@ import { WEEKDAYS, addDays, dateKey, formatWeekRange, isSameDay, isoWeek, startO
 import { useShell } from '../lib/shell';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useTasks } from '../lib/useTasks';
+import { isDialogOpen } from '../lib/web';
 import { colors } from '../theme';
 
 function useNow(): Date {
@@ -70,7 +71,8 @@ export default function WeekScreen() {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // Sperrbildschirm oder Menü-Schublade offen: die Woche dahinter bleibt, wie sie ist.
+      if (e.metaKey || e.ctrlKey || e.altKey || isDialogOpen()) return;
       const target = e.target as HTMLElement | null;
       if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
       if (e.key === 'ArrowLeft') shiftWeek(-1);

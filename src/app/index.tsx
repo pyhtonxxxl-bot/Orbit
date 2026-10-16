@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DayRow } from '../components/DayRow';
 import { Icon, type IconName } from '../components/Icon';
 import { PageHeader } from '../components/shell/PageHeader';
-import { WEEKDAYS, addDays, dateKey, formatDate, startOfWeek } from '../lib/date';
+import { WEEKDAYS, addDays, dateKey, startOfWeek } from '../lib/date';
 import { useShell } from '../lib/shell';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useTasks } from '../lib/useTasks';
+import { enterActivates } from '../lib/web';
 import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, colors, fonts, space } from '../theme';
 
 function useNow(): Date {
@@ -25,8 +26,7 @@ function greeting(date: Date): string {
   const h = date.getHours();
   if (h >= 5 && h < 11) return 'Guten Morgen';
   if (h >= 11 && h < 17) return 'Guten Tag';
-  if (h >= 17 && h < 23) return 'Guten Abend';
-  return 'Gute Nacht';
+  return 'Guten Abend';
 }
 
 /** Startseite: Begrüßung, die Aufgaben von heute und alle Werkzeuge als Bänder. */
@@ -72,7 +72,6 @@ export default function HomeScreen() {
         {/* Begrüßung */}
         <View
           style={[
-            styles.band,
             {
               backgroundColor: colors.days[0],
               paddingTop: (wide ? 40 : rowY) + (hasHeader ? 0 : insets.top),
@@ -87,7 +86,7 @@ export default function HomeScreen() {
                 WILLKOMMEN
               </Text>
               <Text style={styles.greeting}>
-                {greeting(now)}. {weekday}, {formatDate(now)}
+                {greeting(now)}. Heute ist {weekday}.
               </Text>
             </View>
             <View style={wide ? styles.bodyWide : styles.summaryCompact}>
@@ -107,6 +106,7 @@ export default function HomeScreen() {
           color={colors.days[1]}
           isToday
           expanded
+          fill={false}
           wide={wide}
           gutter={gutter}
           canHover={canHover}
@@ -174,6 +174,7 @@ function ToolBand({ name, icon, description, color, wide, gutter, canHover, onPr
 
   return (
     <Pressable
+      {...enterActivates(onPress)}
       onPress={onPress}
       disabled={soon}
       onHoverIn={() => setHovered(true)}
@@ -181,7 +182,12 @@ function ToolBand({ name, icon, description, color, wide, gutter, canHover, onPr
       role={soon ? undefined : 'link'}
       aria-label={soon ? `${name}, kommt bald` : `${name} öffnen`}
       aria-disabled={soon}
-      style={[styles.band, styles.tool, { backgroundColor: color, paddingVertical: rowY + 4, paddingHorizontal: gutter }]}
+      style={[
+        styles.band,
+        styles.tool,
+        soon && styles.toolSoon,
+        { backgroundColor: color, paddingVertical: rowY + 4, paddingHorizontal: gutter },
+      ]}
     >
       {canHover && hovered && !soon && <View style={styles.toolHover} />}
       <View style={[styles.inner, wide ? styles.innerWide : styles.innerCompact, soon && styles.soon]}>
@@ -270,13 +276,16 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
     justifyContent: 'center',
   },
+  toolSoon: {
+    cursor: 'auto',
+  },
   toolHover: {
     position: 'absolute',
     top: 0,
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: colors.hover,
+    backgroundColor: colors.hoverBand,
   },
   soon: {
     opacity: 0.55,

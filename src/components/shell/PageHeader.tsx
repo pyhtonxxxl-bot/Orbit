@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useShell } from '../../lib/shell';
+import { useCanHover } from '../../lib/useLayout';
 import { colors, fonts } from '../../theme';
 import { Icon } from '../Icon';
 
@@ -16,11 +18,20 @@ type Props = {
 export function PageHeader({ title, color, gutter }: Props) {
   const shell = useShell();
   const insets = useSafeAreaInsets();
+  const canHover = useCanHover();
+  const [hovered, setHovered] = useState(false);
   if (!shell || shell.sidebarDocked) return null;
 
   return (
     <View style={[styles.header, { backgroundColor: color, paddingTop: insets.top + 6, paddingHorizontal: gutter - 10 }]}>
-      <Pressable onPress={shell.openMenu} style={styles.menu} role="button" aria-label="Menü öffnen">
+      <Pressable
+        onPress={shell.openMenu}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => setHovered(false)}
+        style={[styles.menu, canHover && hovered && styles.menuHovered]}
+        role="button"
+        aria-label="Menü öffnen"
+      >
         <Icon name="menu" size={22} color={colors.ink} />
       </Pressable>
       <Text style={styles.title}>{title}</Text>
@@ -42,6 +53,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 22,
     cursor: 'pointer',
+  },
+  menuHovered: {
+    backgroundColor: colors.hover,
   },
   title: {
     fontFamily: fonts.semibold,

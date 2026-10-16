@@ -13,6 +13,8 @@ export const colors = {
   control: 'rgba(0, 0, 0, 0.55)', // Checkbox-Rand, ×, Pfeile (mind. 3:1 Kontrast)
   done: 'rgba(0, 0, 0, 0.45)', // erledigte Aufgaben, mit orangem Strich
   hover: 'rgba(0, 0, 0, 0.05)',
+  // Hover auf ganzen Bändern hellt auf statt abzudunkeln, sonst kippt die Hell-dunkel-Treppe.
+  hoverBand: 'rgba(255, 255, 255, 0.22)',
   focus: 'rgba(0, 0, 0, 0.35)',
 
   accent: '#E4642B',

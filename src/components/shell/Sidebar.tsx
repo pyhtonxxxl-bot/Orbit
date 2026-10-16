@@ -1,9 +1,10 @@
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCanHover } from '../../lib/useLayout';
+import { enterActivates } from '../../lib/web';
 import { colors, fonts } from '../../theme';
 import { Icon, type IconName } from '../Icon';
 
@@ -35,14 +36,15 @@ export function Sidebar({ onNavigate, onLock, onClose }: Props) {
   };
 
   return (
-    <View style={[styles.sidebar, { paddingTop: 28 + insets.top, paddingBottom: 20 + insets.bottom }]} role="navigation">
+    // Scrollt, wenn der Platz knapp wird (Handy quer), damit „Sperren“ nie abgeschnitten ist.
+    <ScrollView
+      style={styles.sidebar}
+      contentContainerStyle={[styles.content, { paddingTop: 28 + insets.top, paddingBottom: 20 + insets.bottom }]}
+      role="navigation"
+    >
       <View style={styles.brandRow}>
         <Text style={styles.brand}>ORBIT</Text>
-        {onClose && (
-          <Pressable onPress={onClose} style={styles.closeButton} role="button" aria-label="Menü schließen">
-            <Icon name="close" size={20} color={colors.control} />
-          </Pressable>
-        )}
+        {onClose && <CloseButton onPress={onClose} canHover={canHover} />}
       </View>
 
       <View style={styles.group}>
@@ -60,7 +62,23 @@ export function Sidebar({ onNavigate, onLock, onClose }: Props) {
 
       <View style={styles.spacer} />
       <NavItem item={{ label: 'Sperren', icon: 'lock' }} active={false} canHover={canHover} onPress={onLock} />
-    </View>
+    </ScrollView>
+  );
+}
+
+function CloseButton({ onPress, canHover }: { onPress: () => void; canHover: boolean }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={[styles.closeButton, canHover && hovered && styles.itemHovered]}
+      role="button"
+      aria-label="Menü schließen"
+    >
+      <Icon name="close" size={20} color={colors.control} />
+    </Pressable>
   );
 }
 
@@ -77,9 +95,11 @@ function NavItem({
 }) {
   const [hovered, setHovered] = useState(false);
   const disabled = item.soon;
+  const press = () => onPress(item.href ?? '');
   return (
     <Pressable
-      onPress={() => onPress(item.href ?? '')}
+      {...(item.href && !disabled ? enterActivates(press) : {})}
+      onPress={press}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       disabled={disabled}
@@ -87,6 +107,7 @@ function NavItem({
       aria-current={active ? 'page' : undefined}
       aria-disabled={disabled}
       aria-label={disabled ? `${item.label}, kommt bald` : item.label}
+      accessibilityState={{ selected: active, disabled }}
       style={[
         styles.item,
         active && styles.itemActive,
@@ -104,8 +125,11 @@ function NavItem({
 const styles = StyleSheet.create({
   sidebar: {
     flex: 1,
-    paddingHorizontal: 14,
     backgroundColor: colors.sidebar,
+  },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: 14,
   },
   brandRow: {
     flexDirection: 'row',

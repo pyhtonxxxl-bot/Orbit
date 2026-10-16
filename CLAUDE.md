@@ -6,7 +6,8 @@ Orbit ist eine minimalistische Life-Tracking-App, ein privater Manager statt zeh
 
 ## Aufbau
 - **Start:** `src/components/gate/IntroGate.tsx`: weißer Screen, dann eine Foto-Collage (Statue → Statuen-Auge → echtes Auge → Iris, Bilder in `assets/intro/`) hin und zurück. Danach der Sperrbildschirm: am Handy die Wisch-Leiste (`SlideToUnlock`) nach rechts ziehen, am PC die Leertaste gedrückt halten (oder ziehen). Im Browser überspringt `?intro=0` beides (für Tests).
-- **Hülle:** `src/components/shell/`: Seitenleiste ab 1100 px fest links, darunter als Schublade über das Menü-Symbol (`PageHeader`).
+- **Sperren:** „Sperren“ in der Seitenleiste schiebt den Sperrbildschirm wieder herein. Die App bleibt darunter geladen (Seite und Eingaben bleiben erhalten) und ist im Browser solange `inert`.
+- **Hülle:** `src/components/shell/`: Seitenleiste ab 1100 px fest links, darunter als Schublade über das Menü-Symbol (`PageHeader`). Browser-Helfer (inert, Fokus, Enter auf Links) liegen in `src/lib/web.ts`.
 - **Seiten:** `/` Startseite (Willkommen, heute, Werkzeuge als Bänder), `/woche` Wochenplaner.
 
 ## Design ist das Wichtigste

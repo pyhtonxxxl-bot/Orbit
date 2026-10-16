@@ -15,6 +15,8 @@ type Props = {
   expanded: boolean;
   /** Desktop-Layout: Tag links, Aufgaben rechts, immer offen. */
   wide: boolean;
+  /** Teilt sich übrige Höhe mit den anderen Bändern (Standard). Auf der Startseite aus. */
+  fill?: boolean;
   gutter: number;
   canHover: boolean;
   topInset?: number;
@@ -37,6 +39,7 @@ export function DayRow({
   isToday,
   expanded,
   wide,
+  fill = true,
   gutter,
   canHover,
   topInset = 0,
@@ -82,7 +85,7 @@ export function DayRow({
   // PC: Datum neben dem Tag, damit die ganze Woche auf einen Bildschirm passt.
   if (wide) {
     return (
-      <View style={[styles.row, { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }]}>
+      <View style={[fill && styles.row, { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }]}>
         <View style={styles.innerWide}>
           <View style={styles.side}>
             <View style={styles.headerLineWide}>
@@ -122,7 +125,7 @@ export function DayRow({
 
   // Handy: das ganze Band ist antippbar und klappt den Tag auf oder zu.
   return (
-    <View style={[styles.row, { backgroundColor: color }]}>
+    <View style={[fill && styles.row, { backgroundColor: color }]}>
       {onPressHeader ? (
         <Pressable
           onPress={onPressHeader}
@@ -143,6 +146,7 @@ export function DayRow({
         <Pressable
           accessible={false}
           focusable={false}
+          tabIndex={-1}
           style={[styles.compactBody, { paddingHorizontal: gutter, paddingBottom: rowY }]}
         >
           <View style={[styles.compactInner, styles.body]}>{body}</View>
@@ -222,8 +226,9 @@ const styles = StyleSheet.create({
     maxWidth: CONTENT_MAX_WIDTH,
     gap: 48,
   },
+  // 43 %: „DONNERSTAG“ und Datum passen bei 1280 px mit Seitenleiste noch in eine Zeile.
   side: {
-    flexBasis: '40%',
+    flexBasis: '43%',
     maxWidth: 460,
   },
   headerLine: {
