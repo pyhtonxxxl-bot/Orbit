@@ -78,7 +78,7 @@ export default function TodosScreen() {
       {/* iOS: hinter dem Bounce oben die passende Farbe zeigen. Im Browser gibt es keinen Bounce. */}
       {Platform.OS !== 'web' && <View style={styles.topFill} />}
 
-      <PageHeader title="Todos" color={colors.days[0]} gutter={gutter} />
+      <PageHeader color={colors.days[0]} gutter={gutter} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: keyboard }]}

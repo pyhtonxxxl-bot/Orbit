@@ -68,7 +68,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <PageHeader title="Startseite" color={colors.days[0]} gutter={gutter} />
+      <PageHeader color={colors.days[0]} gutter={gutter} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: keyboard }]}
