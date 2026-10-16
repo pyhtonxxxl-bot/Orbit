@@ -1,21 +1,23 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useShell } from '../../lib/shell';
 import { useCanHover } from '../../lib/useLayout';
-import { colors, fonts } from '../../theme';
+import { colors } from '../../theme';
 import { Icon } from '../Icon';
 
 type Props = {
-  title: string;
   /** Hintergrund, passend zum ersten Band der Seite. */
   color: string;
   gutter: number;
 };
 
-/** Kopfzeile mit Menü-Symbol, nur wenn die Seitenleiste nicht fest links steht (Handy, kleine Fenster). */
-export function PageHeader({ title, color, gutter }: Props) {
+/**
+ * Kopfzeile mit dem Menü-Symbol, ohne Seitentitel: die Seite spricht für sich.
+ * Nur da, wenn die Seitenleiste nicht fest links steht (Handy, kleine Fenster).
+ */
+export function PageHeader({ color, gutter }: Props) {
   const shell = useShell();
   const insets = useSafeAreaInsets();
   const canHover = useCanHover();
@@ -34,7 +36,6 @@ export function PageHeader({ title, color, gutter }: Props) {
       >
         <Icon name="menu" size={22} color={colors.ink} />
       </Pressable>
-      <Text style={styles.title}>{title}</Text>
     </View>
   );
 }
@@ -56,12 +57,5 @@ const styles = StyleSheet.create({
   },
   menuHovered: {
     backgroundColor: colors.hover,
-  },
-  title: {
-    fontFamily: fonts.semibold,
-    fontSize: 12,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    color: colors.inkMuted,
   },
 });

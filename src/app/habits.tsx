@@ -63,7 +63,7 @@ export default function HabitsScreen() {
       {/* iOS: hinter dem Bounce oben die passende Farbe zeigen. Im Browser gibt es keinen Bounce. */}
       {Platform.OS !== 'web' && <View style={styles.topFill} />}
 
-      <PageHeader title="Habits" color={colors.days[0]} gutter={gutter} />
+      <PageHeader color={colors.days[0]} gutter={gutter} />
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
