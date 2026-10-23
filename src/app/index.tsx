@@ -4,20 +4,21 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DayRow } from '../components/DayRow';
+import { DayBand } from '../components/DayBand';
 import { HabitItem } from '../components/HabitItem';
 import { Icon, type IconName } from '../components/Icon';
 import { SectionLink } from '../components/SectionLink';
+import { TaskList } from '../components/TaskList';
 import { TaskPanel } from '../components/TaskPanel';
 import { PageHeader } from '../components/shell/PageHeader';
 import { WEEKDAYS, addDays, dateKey, startOfWeek } from '../lib/date';
 import { useShell } from '../lib/shell';
-import { streak, useHabits, type Habit } from '../lib/useHabits';
+import { isDaily, isScheduled, streak, useHabits, type Habit } from '../lib/useHabits';
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useNow } from '../lib/useNow';
 import { useTags } from '../lib/useTags';
 import { useTaskPanel } from '../lib/useTaskPanel';
-import { useTasks } from '../lib/useTasks';
+import { tasksOn, useTasks } from '../lib/useTasks';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
 import { enterActivates, heading } from '../lib/web';
 import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, colors, fonts, space } from '../theme';
@@ -48,16 +49,18 @@ export default function HomeScreen() {
   if (!tasks.loaded || !habits.loaded) return <View style={styles.root} />;
 
   const todayKey = dateKey(now);
-  const today = tasks.tasks[todayKey] ?? [];
+  const today = tasksOn(tasks.tasks, todayKey);
   const todosDone = today.filter((t) => t.done).length;
-  const habitsDone = habits.habits.filter((h) => h.done.includes(todayKey)).length;
+  // Nur die Habits, die heute anstehen.
+  const todayHabits = habits.habits.filter((h) => isScheduled(h, now));
+  const habitsDone = todayHabits.filter((h) => h.done.includes(todayKey)).length;
   const weekStart = startOfWeek(now);
-  const weekTasks = WEEKDAYS.flatMap((_, i) => tasks.tasks[dateKey(addDays(weekStart, i))] ?? []);
+  const weekTasks = WEEKDAYS.flatMap((_, i) => tasksOn(tasks.tasks, dateKey(addDays(weekStart, i))));
   const weekOpen = weekTasks.filter((t) => !t.done).length;
   const weekday = WEEKDAYS[(now.getDay() + 6) % 7];
 
   const parts = [
-    habits.habits.length > 0 && `${habitsDone} von ${habits.habits.length} Habits`,
+    todayHabits.length > 0 && `${habitsDone} von ${todayHabits.length} Habits`,
     today.length > 0 && `${todosDone} von ${today.length} Todos`,
   ].filter(Boolean);
   const summary = parts.length === 0 ? 'Für heute ist noch nichts geplant.' : `Heute ${parts.join(' und ')} erledigt.`;
@@ -107,7 +110,8 @@ export default function HomeScreen() {
 
         {/* Habits: jeden Tag dasselbe abhaken */}
         <HabitsToday
-          habits={habits.habits}
+          habits={todayHabits}
+          anyHabits={habits.habits.length > 0}
           now={now}
           color={colors.days[1]}
           wide={wide}
@@ -120,7 +124,7 @@ export default function HomeScreen() {
         />
 
         {/* Todos: dieselbe Tageszeile wie im Wochenplaner, immer offen */}
-        <DayRow
+        <DayBand
           label="Heute"
           title="Todos"
           subtitle={today.length === 0 ? 'Noch nichts geplant' : `${todosDone} von ${today.length} erledigt`}
@@ -141,16 +145,22 @@ export default function HomeScreen() {
           fill={false}
           wide={wide}
           gutter={gutter}
-          canHover={canHover}
-          tasks={today}
-          selectedId={panel?.mode === 'edit' ? panel.id : undefined}
-          onAdd={() => openNew(todayKey)}
-          onToggle={(id) => {
-            tap();
-            tasks.toggle(todayKey, id);
-          }}
-          onOpen={(id) => openTask(todayKey, id)}
-        />
+        >
+          <TaskList
+            label="Heute"
+            items={today}
+            todayKey={todayKey}
+            canHover={canHover}
+            selected={panel?.mode === 'edit' ? `${panel.id}@${panel.date}` : undefined}
+            onToggle={(item) => {
+              tap();
+              tasks.toggle(item.start, item.task.id, item.day);
+            }}
+            onOpen={(item) => openTask(item.start, item.task.id, item.day)}
+            onHours={(item, hours) => tasks.setHours(item.start, item.task.id, item.day, hours)}
+            onAdd={() => openNew(todayKey)}
+          />
+        </DayBand>
 
         <ToolBand
           name="Training"
@@ -178,7 +188,7 @@ export default function HomeScreen() {
 
       {panel && (
         <TaskPanel
-          key={panel.mode === 'edit' ? panel.id : `new-${panel.day}`}
+          key={panel.mode === 'edit' ? `${panel.id}@${panel.date}` : `new-${panel.day}`}
           state={panel}
           task={panelTask}
           tags={tags.tags}
@@ -192,7 +202,10 @@ export default function HomeScreen() {
           onToggle={() => {
             if (panel.mode !== 'edit') return;
             tap();
-            tasks.toggle(panel.day, panel.id);
+            tasks.toggle(panel.day, panel.id, panel.date);
+          }}
+          onHours={(hours) => {
+            if (panel.mode === 'edit') tasks.setHours(panel.day, panel.id, panel.date, hours);
           }}
           onRemove={() => {
             if (panel.mode !== 'edit') return;
@@ -210,7 +223,10 @@ export default function HomeScreen() {
 }
 
 type HabitsTodayProps = {
+  /** Die Habits, die heute anstehen. */
   habits: Habit[];
+  /** Gibt es überhaupt welche (an anderen Tagen)? */
+  anyHabits: boolean;
   now: Date;
   color: string;
   wide: boolean;
@@ -219,36 +235,42 @@ type HabitsTodayProps = {
   onToggle: (id: string) => void;
 };
 
-/** Band „Habits“: alle Habits für heute zum Abhaken, mit Link zur Wochenansicht. */
-function HabitsToday({ habits, now, color, wide, gutter, canHover, onToggle }: HabitsTodayProps) {
+/** Band „Habits“: die Habits, die heute anstehen, zum Abhaken, mit Link zur Wochenansicht. */
+function HabitsToday({ habits, anyHabits, now, color, wide, gutter, canHover, onToggle }: HabitsTodayProps) {
   const todayKey = dateKey(now);
   const done = habits.filter((h) => h.done.includes(todayKey)).length;
   const rowY = wide ? space.rowYWide : space.rowY;
-  const status = habits.length === 0 ? 'Noch keine angelegt' : `${done} von ${habits.length} erledigt`;
+  const status = !anyHabits
+    ? 'Noch keine angelegt'
+    : habits.length === 0
+      ? 'Heute frei'
+      : `${done} von ${habits.length} erledigt`;
   const link = (
     <SectionLink
-      label={habits.length === 0 ? 'Anlegen' : 'Alle Habits'}
+      label={anyHabits ? 'Alle Habits' : 'Anlegen'}
       canHover={canHover}
-      onPress={() => router.navigate('/habits')}
+      onPress={() => router.navigate(anyHabits ? '/habits' : '/einstellungen')}
       style={!wide && styles.linkCompact}
     />
   );
 
-  const list =
-    habits.length === 0 ? (
-      <Text style={styles.empty}>Was willst du jeden Tag schaffen? Lesen, Sport, Wasser trinken …</Text>
-    ) : (
-      habits.map((habit) => (
-        <HabitItem
-          key={habit.id}
-          title={habit.title}
-          checked={habit.done.includes(todayKey)}
-          streak={streak(habit, now)}
-          canHover={canHover}
-          onToggle={() => onToggle(habit.id)}
-        />
-      ))
-    );
+  const list = !anyHabits ? (
+    <Text style={styles.empty}>Was willst du regelmäßig schaffen? Lesen, Sport, Wasser trinken … Anlegen in den Einstellungen.</Text>
+  ) : habits.length === 0 ? (
+    <Text style={styles.empty}>Heute steht kein Habit an.</Text>
+  ) : (
+    habits.map((habit) => (
+      <HabitItem
+        key={habit.id}
+        title={habit.title}
+        checked={habit.done.includes(todayKey)}
+        streak={streak(habit, now)}
+        daily={isDaily(habit)}
+        canHover={canHover}
+        onToggle={() => onToggle(habit.id)}
+      />
+    ))
+  );
 
   if (wide) {
     return (

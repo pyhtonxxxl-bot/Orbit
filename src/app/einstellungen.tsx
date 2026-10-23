@@ -5,14 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '../components/Icon';
 import { PageHeader } from '../components/shell/PageHeader';
 import { confirmDelete } from '../lib/confirm';
+import { WEEKDAYS } from '../lib/date';
 import { useShell } from '../lib/shell';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
 import { useCanHover, useLayout } from '../lib/useLayout';
+import { isDaily, useHabits, type Habit } from '../lib/useHabits';
 import { useTags, type Tag } from '../lib/useTags';
-import { heading } from '../lib/web';
+import { heading, spaceToggles } from '../lib/web';
 import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
 
-/** Einstellungen. Bisher: Tags für Aufgaben anlegen, umbenennen und löschen. */
+/** Einstellungen: Habits mit ihren Wochentagen, Tags für Aufgaben. */
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { wide, gutter } = useLayout();
@@ -21,9 +23,11 @@ export default function SettingsScreen() {
   const hasHeader = !!shell && !shell.sidebarDocked;
   const keyboard = useKeyboardInset();
   const { tags, loaded, add, rename, remove } = useTags();
+  const habits = useHabits();
   const [draft, setDraft] = useState('');
+  const [habitDraft, setHabitDraft] = useState('');
 
-  if (!loaded) return <View style={styles.root} />;
+  if (!loaded || !habits.loaded) return <View style={styles.root} />;
 
   const rowY = wide ? space.rowYWide : space.rowY;
 
@@ -52,8 +56,55 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Habits: Name und die Wochentage, an denen es sich wiederholt. */}
+        <View style={{ backgroundColor: colors.days[1], paddingVertical: rowY + 6, paddingHorizontal: gutter }}>
+          <View style={[styles.inner, wide ? styles.innerWide : styles.innerCompact]}>
+            <View style={wide ? styles.side : undefined}>
+              <Text {...heading(2)} style={[styles.section, wide && styles.sectionWide]} maxFontSizeMultiplier={1.3}>
+                HABITS
+              </Text>
+              <Text style={styles.hint}>Wiederholt sich an den dunklen Tagen. Jeden Tag gibt es ein frisches Kästchen.</Text>
+            </View>
+            <View style={wide ? styles.bodyWide : styles.bodyCompact}>
+              {habits.habits.map((habit) => (
+                <HabitRow
+                  key={habit.id}
+                  habit={habit}
+                  wide={wide}
+                  canHover={canHover}
+                  onRename={(title) => habits.rename(habit.id, title)}
+                  onDays={(days) => habits.setDays(habit.id, days)}
+                  onRemove={() =>
+                    confirmDelete(`Habit „${habit.title}“ löschen?`, 'Das Habit und alle Haken verschwinden.', () =>
+                      habits.remove(habit.id),
+                    )
+                  }
+                />
+              ))}
+              <View style={styles.tagRow}>
+                <Icon name="plus" size={16} color={colors.inkFaint} />
+                <TextInput
+                  value={habitDraft}
+                  onChangeText={setHabitDraft}
+                  onSubmitEditing={() => {
+                    habits.add(habitDraft);
+                    setHabitDraft('');
+                  }}
+                  submitBehavior="submit"
+                  blurOnSubmit={false}
+                  placeholder="Neues Habit, z. B. Lesen…"
+                  placeholderTextColor={colors.inkFaint}
+                  returnKeyType="done"
+                  aria-label="Neues Habit hinzufügen"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* Tags: links der Name des Abschnitts, rechts die Liste mit Punkten. */}
-        <View style={[styles.band, { backgroundColor: colors.days[1], paddingVertical: rowY + 6, paddingHorizontal: gutter }]}>
+        <View style={[styles.band, { backgroundColor: colors.days[2], paddingVertical: rowY + 6, paddingHorizontal: gutter }]}>
           <View style={[styles.inner, wide ? styles.innerWide : styles.innerCompact]}>
             <View style={wide ? styles.side : undefined}>
               <Text {...heading(2)} style={[styles.section, wide && styles.sectionWide]} maxFontSizeMultiplier={1.3}>
@@ -97,6 +148,112 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+const LETTERS = ['M', 'D', 'M', 'D', 'F', 'S', 'S'];
+
+type HabitRowProps = {
+  habit: Habit;
+  wide: boolean;
+  canHover: boolean;
+  onRename: (title: string) => void;
+  onDays: (days: number[]) => void;
+  onRemove: () => void;
+};
+
+/** Ein Habit: Punkt, Name zum Umbenennen, die sieben Wochentage zum An- und Abschalten, × zum Löschen. */
+function HabitRow({ habit, wide, canHover, onRename, onDays, onRemove }: HabitRowProps) {
+  const [name, setName] = useState(habit.title);
+  const [focused, setFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const ref = useRef<TextInput>(null);
+  const days = habit.days ?? [0, 1, 2, 3, 4, 5, 6];
+
+  // Name wurde woanders geändert (anderer Tab): übernehmen, solange hier nicht getippt wird.
+  const [lastName, setLastName] = useState(habit.title);
+  if (habit.title !== lastName) {
+    setLastName(habit.title);
+    if (!focused) setName(habit.title);
+  }
+
+  const commit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) setName(habit.title);
+    else if (trimmed !== habit.title) onRename(trimmed);
+  };
+  // Der letzte Tag lässt sich nicht abschalten: ein Habit ohne Tage stünde nie an.
+  const toggleDay = (d: number) => {
+    if (days.includes(d)) {
+      if (days.length > 1) onDays(days.filter((x) => x !== d));
+    } else onDays([...days, d]);
+  };
+
+  const dayButtons = (
+    <View style={styles.weekdays} role="group" aria-label={`Wiederholung von „${habit.title}“`}>
+      {LETTERS.map((letter, d) => {
+        const on = days.includes(d);
+        return (
+          <Pressable
+            key={d}
+            {...spaceToggles(() => toggleDay(d))}
+            onPress={() => toggleDay(d)}
+            role="checkbox"
+            aria-checked={on}
+            aria-label={WEEKDAYS[d]}
+            style={({ pressed }) => [styles.weekday, on && styles.weekdayOn, pressed && styles.pressed]}
+          >
+            <Text style={[styles.weekdayText, on && styles.weekdayTextOn]} selectable={false}>
+              {letter}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  const nameInput = (
+    <TextInput
+      ref={ref}
+      value={name}
+      onChangeText={setName}
+      onFocus={() => setFocused(true)}
+      onBlur={() => {
+        setFocused(false);
+        commit();
+      }}
+      onSubmitEditing={() => ref.current?.blur()}
+      returnKeyType="done"
+      aria-label={`Habit „${habit.title}“ umbenennen`}
+      style={[styles.input, styles.tagName, focused && styles.inputFocused]}
+    />
+  );
+  const removeButton = (
+    <Pressable
+      onPress={onRemove}
+      role="button"
+      aria-label={`Habit „${habit.title}“ löschen`}
+      style={({ pressed }) => [styles.remove, pressed && styles.pressed]}
+    >
+      <Icon name="close" size={16} color={colors.control} />
+    </Pressable>
+  );
+
+  return (
+    <View
+      style={[styles.habitRow, canHover && hovered && styles.tagRowHovered]}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+    >
+      <View style={styles.habitHead}>
+        <View style={styles.dot} />
+        {nameInput}
+        {wide && dayButtons}
+        {removeButton}
+      </View>
+      {!wide && <View style={styles.habitDays}>{dayButtons}</View>}
+      {!wide && <Text style={styles.repeat}>{isDaily(habit) ? 'Jeden Tag' : days.map((d) => WEEKDAYS[d].slice(0, 2)).join(' · ')}</Text>}
     </View>
   );
 }
@@ -237,6 +394,57 @@ const styles = StyleSheet.create({
   },
   tagRowHovered: {
     backgroundColor: colors.hover,
+  },
+  habitRow: {
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  habitHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 44,
+  },
+  habitDays: {
+    marginLeft: 28,
+  },
+  repeat: {
+    marginLeft: 28,
+    marginTop: 4,
+    marginBottom: 8,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.inkMuted,
+  },
+  weekdays: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  // Wochentag: dunkel gefüllt = an diesem Tag, nur Ring = nicht.
+  weekday: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.control,
+    cursor: 'pointer',
+  },
+  weekdayOn: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  weekdayText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    color: colors.inkMuted,
+    userSelect: 'none',
+  },
+  weekdayTextOn: {
+    color: colors.white,
   },
   dot: {
     width: 6,

@@ -1,14 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { dateKey, formatDate, formatTime } from '../lib/date';
-import type { Task } from '../lib/useTasks';
+import { formatDate, formatTime } from '../lib/date';
 import { heading } from '../lib/web';
 import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
-import { Icon } from './Icon';
-import { TaskItem } from './TaskItem';
 
 type Props = {
+  /** Wochentag, für Bedienhilfen. */
   label: string;
   /** Überschrift, falls sie anders lauten soll als der Tag (Startseite: „Todos“). */
   title?: string;
@@ -22,26 +20,23 @@ type Props = {
   now: Date;
   color: string;
   isToday: boolean;
+  /** Aufgeklappt zeigt das Band seinen Inhalt. Am Handy wie am PC ist immer höchstens ein Tag offen. */
   expanded: boolean;
-  /** Desktop-Layout: Tag links, Aufgaben rechts, immer offen. */
+  /** PC-Layout: Tag und Datum links, Inhalt rechts. */
   wide: boolean;
   /** Teilt sich übrige Höhe mit den anderen Bändern (Standard). Auf der Startseite aus. */
   fill?: boolean;
   gutter: number;
-  canHover: boolean;
   topInset?: number;
-  tasks: Task[];
-  /** Aufgabe, die gerade im Fenster offen ist (wird hervorgehoben). */
-  selectedId?: string;
-  /** Antippen klappt den Tag auf/zu (Handy). Ohne Handler bleibt der Kopf ein fester Titel, z. B. auf der Startseite. */
+  /** Erledigt/gesamt, steht zugeklappt im Kopf. */
+  count?: { done: number; total: number };
+  /** Antippen klappt den Tag auf/zu. Ohne Handler bleibt der Kopf ein fester Titel, z. B. auf der Startseite. */
   onPressHeader?: () => void;
-  /** Neue Aufgabe für diesen Tag: öffnet das Fenster. Am PC reicht ein Klick irgendwo aufs Band. */
-  onAdd: () => void;
-  onToggle: (id: string) => void;
-  onOpen: (id: string) => void;
+  children: ReactNode;
 };
 
-export function DayRow({
+/** Ein Tagesband im Stapel: Kopf mit Tag und Datum, darunter (Handy) bzw. daneben (PC) der Inhalt. */
+export function DayBand({
   label,
   title = label,
   accessory,
@@ -55,76 +50,92 @@ export function DayRow({
   wide,
   fill = true,
   gutter,
-  canHover,
   topInset = 0,
-  tasks,
-  selectedId,
+  count,
   onPressHeader,
-  onAdd,
-  onToggle,
-  onOpen,
+  children,
 }: Props) {
   const [hovered, setHovered] = useState(false);
-  const done = tasks.filter((t) => t.done).length;
   const rowY = wide ? space.rowYWide : space.rowY;
-  const key = dateKey(date);
-  const todayKey = dateKey(now);
+  const total = count?.total ?? 0;
+  const ariaLabel = `${label}, ${formatDate(date)}${isToday ? ', heute' : ''}${
+    total ? `, ${count?.done} von ${total} erledigt` : ''
+  }`;
 
   const dateText = (
     <Text style={[styles.date, wide && styles.dateWide]}>
       {subtitle ?? `${formatDate(date)}${isToday ? ` – ${formatTime(now)}` : ''}`}
     </Text>
   );
-
-  const body = (
-    <>
-      {tasks.map((task) => (
-        <TaskItem
-          key={task.id}
-          task={task}
-          dayKey={key}
-          todayKey={todayKey}
-          canHover={canHover}
-          selected={task.id === selectedId}
-          onToggle={() => onToggle(task.id)}
-          onOpen={() => onOpen(task.id)}
-        />
-      ))}
-      <AddRow label={label} alone={wide && tasks.length === 0} active={canHover && hovered} onPress={onAdd} />
-    </>
+  const countText = !expanded && total > 0 && (
+    <Text style={styles.count}>
+      {count?.done}/{total}
+    </Text>
   );
 
   // PC: Datum neben dem Tag, damit die ganze Woche auf einen Bildschirm passt.
-  // Das ganze Band ist eine Klickfläche für „Neue Aufgabe“ (nur Maus; Tastatur und Screenreader nehmen
-  // die Zeile „Aufgabe hinzufügen“). Klicks auf eine Aufgabe landen bei der Aufgabe, nicht hier.
   if (wide) {
+    const headLine = (
+      <View style={styles.headerLineWide}>
+        {isToday && todayDot && <View style={styles.todayDot} />}
+        <Text
+          {...(onPressHeader ? {} : heading(2))}
+          style={[styles.day, styles.dayWide]}
+          maxFontSizeMultiplier={1.3}
+        >
+          {title.toUpperCase()}
+        </Text>
+        {dateText}
+      </View>
+    );
+
+    // Zugeklappt ist das ganze Band ein Knopf, der den Tag aufklappt.
+    if (!expanded && onPressHeader) {
+      return (
+        <Pressable
+          onPress={onPressHeader}
+          onHoverIn={() => setHovered(true)}
+          onHoverOut={() => setHovered(false)}
+          role="button"
+          aria-expanded={false}
+          aria-label={ariaLabel}
+          style={[
+            fill && styles.row,
+            styles.bandWideCollapsed,
+            { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter },
+          ]}
+        >
+          {hovered && <View style={styles.hoverOverlay} />}
+          <View style={[styles.innerWide, styles.innerWideCollapsed]}>
+            <View style={styles.side}>{headLine}</View>
+            <View style={styles.bodyWideCollapsed}>{countText}</View>
+          </View>
+        </Pressable>
+      );
+    }
+
     return (
-      <Pressable
-        onPress={onAdd}
-        onHoverIn={() => setHovered(true)}
-        onHoverOut={() => setHovered(false)}
-        accessible={false}
-        tabIndex={-1}
-        style={[
-          fill && styles.row,
-          styles.bandWide,
-          { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter },
-        ]}
-      >
+      <View style={[fill && styles.row, { backgroundColor: color, paddingVertical: rowY, paddingHorizontal: gutter }]}>
         <View style={styles.innerWide}>
           <View style={styles.side}>
-            <View style={styles.headerLineWide}>
-              {isToday && todayDot && <View style={styles.todayDot} />}
-              <Text {...heading(2)} style={[styles.day, styles.dayWide]} maxFontSizeMultiplier={1.3}>
-                {title.toUpperCase()}
-              </Text>
-              {dateText}
-            </View>
+            {onPressHeader ? (
+              <Pressable
+                onPress={onPressHeader}
+                role="button"
+                aria-expanded
+                aria-label={ariaLabel}
+                style={styles.headerWide}
+              >
+                {headLine}
+              </Pressable>
+            ) : (
+              headLine
+            )}
             {accessory && <View style={styles.accessoryWide}>{accessory}</View>}
           </View>
-          <View style={styles.bodyWide}>{body}</View>
+          <View style={styles.bodyWide}>{children}</View>
         </View>
-      </Pressable>
+      </View>
     );
   }
 
@@ -146,11 +157,7 @@ export function DayRow({
         >
           {title.toUpperCase()}
         </Text>
-        {!expanded && tasks.length > 0 && (
-          <Text style={styles.count}>
-            {done}/{tasks.length}
-          </Text>
-        )}
+        {countText}
         {accessory}
       </View>
       {(expanded || isToday) && dateText}
@@ -161,13 +168,7 @@ export function DayRow({
   return (
     <View style={[fill && styles.row, { backgroundColor: color }]}>
       {onPressHeader ? (
-        <Pressable
-          onPress={onPressHeader}
-          role="button"
-          aria-expanded={expanded}
-          aria-label={`${label}, ${formatDate(date)}${isToday ? ', heute' : ''}${tasks.length ? `, ${done} von ${tasks.length} erledigt` : ''}`}
-          style={headerStyle}
-        >
+        <Pressable onPress={onPressHeader} role="button" aria-expanded={expanded} aria-label={ariaLabel} style={headerStyle}>
           {headerContent}
         </Pressable>
       ) : (
@@ -183,38 +184,10 @@ export function DayRow({
           tabIndex={-1}
           style={[styles.compactBody, { paddingHorizontal: gutter, paddingBottom: rowY }]}
         >
-          <View style={[styles.compactInner, styles.body]}>{body}</View>
+          <View style={[styles.compactInner, styles.body]}>{children}</View>
         </Pressable>
       )}
     </View>
-  );
-}
-
-type AddRowProps = {
-  label: string;
-  /** Erste Zeile ohne Aufgaben darüber: sitzt auf der Grundlinie des Tagesnamens. */
-  alone: boolean;
-  /** Maus ist über dem Band: deutlicher zeigen, dass ein Klick eine Aufgabe anlegt. */
-  active: boolean;
-  onPress: () => void;
-};
-
-/** Leise Zeile „+ Aufgabe hinzufügen“ am Ende eines Tages. Öffnet das Fenster für eine neue Aufgabe. */
-function AddRow({ label, alone, active, onPress }: AddRowProps) {
-  const [hovered, setHovered] = useState(false);
-  const strong = active || hovered;
-  return (
-    <Pressable
-      onPress={onPress}
-      onHoverIn={() => setHovered(true)}
-      onHoverOut={() => setHovered(false)}
-      role="button"
-      aria-label={`Aufgabe für ${label} hinzufügen`}
-      style={({ pressed }) => [styles.add, alone && styles.addAlone, pressed && styles.addPressed]}
-    >
-      <Icon name="plus" size={18} color={strong ? colors.ink : colors.inkFaint} strokeWidth={1.75} />
-      <Text style={[styles.addText, strong && styles.addTextStrong]}>Aufgabe hinzufügen</Text>
-    </Pressable>
   );
 }
 
@@ -247,6 +220,26 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: CONTENT_MAX_WIDTH,
     gap: 48,
+  },
+  innerWideCollapsed: {
+    alignItems: 'baseline',
+  },
+  bandWideCollapsed: {
+    justifyContent: 'center',
+    cursor: 'pointer',
+  },
+  // Hover hellt auf statt abzudunkeln, sonst kippt die Hell-dunkel-Treppe.
+  hoverOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: colors.hoverBand,
+  },
+  headerWide: {
+    alignSelf: 'flex-start',
+    cursor: 'pointer',
   },
   // 43 %: „DONNERSTAG“ und Datum passen bei 1280 px mit Seitenleiste noch in eine Zeile.
   side: {
@@ -309,39 +302,14 @@ const styles = StyleSheet.create({
   body: {
     marginTop: 18,
   },
-  // Erste Aufgabe steht auf derselben Grundlinie wie Tagesname und Datum.
+  // Erste Zeile steht auf derselben Grundlinie wie Tagesname und Datum.
   bodyWide: {
     flex: 1,
     marginTop: 10,
     maxWidth: 620,
   },
-  bandWide: {
-    cursor: 'pointer',
-  },
-  add: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 10,
-    marginTop: 4,
-    marginHorizontal: -8,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    cursor: 'pointer',
-  },
-  addAlone: {
-    marginTop: 0,
-  },
-  addPressed: {
-    opacity: 0.6,
-  },
-  addText: {
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    color: colors.inkFaint,
-  },
-  addTextStrong: {
-    color: colors.ink,
+  bodyWideCollapsed: {
+    flex: 1,
+    maxWidth: 620,
   },
 });

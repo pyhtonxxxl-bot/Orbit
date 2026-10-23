@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { Task } from '../lib/useTasks';
+import { formatHours, type Occurrence } from '../lib/useTasks';
 import { spaceToggles } from '../lib/web';
 import { colors, fonts } from '../theme';
 import { Checkbox } from './Checkbox';
 
 type Props = {
-  task: Task;
-  /** An welchem Tag die Aufgabe liegt und welcher heute ist: für „Fällig“ und „Überfällig“. */
-  dayKey: string;
+  item: Occurrence;
   todayKey: string;
   /** Maus/Trackpad: Hover-Fläche zeigen. */
   canHover: boolean;
@@ -19,12 +17,15 @@ type Props = {
   onOpen: () => void;
 };
 
-/** Eine Aufgabe in der Liste: nur das Kästchen und die Beschreibung. Alles andere steht im Fenster. */
-export function TaskItem({ task, dayKey, todayKey, canHover, selected = false, onToggle, onOpen }: Props) {
+/**
+ * Eine Aufgabe in der Liste: das Kästchen und die Beschreibung, dahinter leise die Stunden des Tages.
+ * Alles andere steht im Fenster.
+ */
+export function TaskItem({ item, todayKey, canHover, selected = false, onToggle, onOpen }: Props) {
   const [hovered, setHovered] = useState(false);
-  const due = !!task.due && !task.done;
-  const overdue = due && dayKey < todayKey;
-  const badge = overdue ? 'Überfällig' : due ? 'Fällig' : null;
+  const { task, done, hours, dueHere, day } = item;
+  const due = dueHere && !done;
+  const badge = !due ? null : day < todayKey ? 'Überfällig' : 'Fällig';
 
   return (
     <View style={[styles.row, canHover && hovered && styles.rowHovered, selected && styles.rowSelected]}>
@@ -35,23 +36,24 @@ export function TaskItem({ task, dayKey, todayKey, canHover, selected = false, o
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
         role="checkbox"
-        aria-checked={task.done}
+        aria-checked={done}
         aria-label={badge ? `${task.title}, ${badge.toLowerCase()}` : task.title}
         style={({ pressed }) => [styles.check, pressed && styles.pressed]}
       >
-        <Checkbox checked={task.done} due={due} />
+        <Checkbox checked={done} due={due} />
       </Pressable>
 
-      {/* Beschreibung: öffnet das Fenster mit Link, Fälligkeit und Tags. */}
+      {/* Beschreibung: öffnet das Fenster mit Bis, Stunden, Link und Tags. */}
       <Pressable
         onPress={onOpen}
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
         role="button"
-        aria-label={`${task.title}, Details`}
+        aria-label={`${task.title}${hours ? `, ${formatHours(hours)}` : ''}, Details`}
         style={({ pressed }) => [styles.open, pressed && styles.pressed]}
       >
-        <Text style={[styles.title, task.done && styles.titleDone]}>{task.title}</Text>
+        <Text style={[styles.title, done && styles.titleDone]}>{task.title}</Text>
+        {!!hours && <Text style={styles.hours}>{formatHours(hours)}</Text>}
         {badge && (
           <View style={styles.badge}>
             <Text style={styles.badgeText} maxFontSizeMultiplier={1.3}>
@@ -106,6 +108,12 @@ const styles = StyleSheet.create({
     color: colors.done,
     textDecorationLine: 'line-through',
     textDecorationColor: colors.accent,
+  },
+  hours: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.inkMuted,
   },
   // Fällig: kleines oranges Schild hinter der Beschreibung.
   badge: {
