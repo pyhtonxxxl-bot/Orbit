@@ -4,7 +4,8 @@ import { Animated, BackHandler, PanResponder, Platform, Pressable, StyleSheet, V
 
 import { ShellContext } from '../../lib/shell';
 import { focusFirst, setInert } from '../../lib/web';
-import { SIDEBAR_BREAKPOINT, SIDEBAR_WIDTH, colors } from '../../theme';
+import { useColors } from '../../lib/theme';
+import { SIDEBAR_BREAKPOINT, SIDEBAR_WIDTH, themed } from '../../theme';
 import { Sidebar } from './Sidebar';
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
 
 /** App-Hülle: am PC feste Seitenleiste links, am Handy eine Schublade über das Menü-Symbol. */
 export function Shell({ children, onLock }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const { width } = useWindowDimensions();
   const pathname = usePathname();
   const docked = width >= SIDEBAR_BREAKPOINT;
@@ -79,6 +82,8 @@ export function Shell({ children, onLock }: Props) {
 const DRAWER_WIDTH = 300;
 
 function Drawer({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [progress] = useState(() => new Animated.Value(0));
   const [mounted, setMounted] = useState(open);
   const panelRef = useRef<View>(null);
@@ -160,7 +165,7 @@ function Drawer({ open, onClose, children }: { open: boolean; onClose: () => voi
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   row: {
     flex: 1,
     flexDirection: 'row',
@@ -191,4 +196,4 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     shadowOffset: { width: 4, height: 0 },
   },
-});
+}));

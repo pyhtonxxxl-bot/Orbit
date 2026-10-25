@@ -22,6 +22,15 @@
         /* Kein „Zurück“ und kein Gummiband beim seitlichen Wischen (z. B. über die Wisch-Leiste). */
         overscroll-behavior: none;
       }
+      /* Dunkles Design (Einstellungen): Seitengrund und Bildlaufleisten dunkel, siehe src/lib/theme.tsx. */
+      html.dark,
+      html.dark body {
+        background-color: #111111;
+        color-scheme: dark;
+      }
+      html.dark * {
+        scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+      }
       body {
         overflow: hidden;
         -webkit-font-smoothing: antialiased;
@@ -54,6 +63,13 @@
         outline-offset: -4px;
       }
     </style>
+    <!-- Gespeichertes Design sofort anwenden, damit beim Laden nichts hell aufblitzt. -->
+    <script>
+      try {
+        var settings = JSON.parse(localStorage.getItem('orbit.settings.v1') || '{}');
+        if (settings && settings.theme === 'dark') document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
 
   <body>

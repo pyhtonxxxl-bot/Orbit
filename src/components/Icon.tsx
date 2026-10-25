@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
-import { colors } from '../theme';
+import { useColors } from '../lib/theme';
 
 export type IconName =
   | 'home'
@@ -25,8 +25,9 @@ type Props = {
 };
 
 /** Schlichte Linien-Icons (24er Raster), passend zur dünnen Barlow-Optik. */
-export function Icon({ name, size = 20, color = colors.ink, strokeWidth = 1.75 }: Props) {
-  const stroke = { stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
+export function Icon({ name, size = 20, color, strokeWidth = 1.75 }: Props) {
+  const colors = useColors();
+  const stroke = { stroke: color ?? colors.ink, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   // Rein dekorativ: die Beschriftung steht immer daneben, Screenreader überspringen das Icon.
   return (
     <View aria-hidden style={{ width: size, height: size }}>

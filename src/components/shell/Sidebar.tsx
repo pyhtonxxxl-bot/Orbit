@@ -1,11 +1,12 @@
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCanHover } from '../../lib/useLayout';
 import { enterActivates } from '../../lib/web';
-import { colors, fonts } from '../../theme';
+import { useColors } from '../../lib/theme';
+import { fonts, themed } from '../../theme';
 import { Icon, type IconName } from '../Icon';
 
 type Href = '/' | '/habits' | '/todos' | '/einstellungen';
@@ -29,6 +30,8 @@ type Props = {
 };
 
 export function Sidebar({ onNavigate, onLock, onClose }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const canHover = useCanHover();
@@ -71,6 +74,8 @@ export function Sidebar({ onNavigate, onLock, onClose }: Props) {
 }
 
 function CloseButton({ onPress, canHover }: { onPress: () => void; canHover: boolean }) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   return (
     <Pressable
@@ -97,6 +102,8 @@ function NavItem({
   canHover: boolean;
   onPress: (href: string) => void;
 }) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   const disabled = item.soon;
   const press = () => onPress(item.href ?? '');
@@ -126,7 +133,7 @@ function NavItem({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   sidebar: {
     flex: 1,
     backgroundColor: colors.sidebar,
@@ -208,4 +215,4 @@ const styles = StyleSheet.create({
   spacer: {
     flex: 1,
   },
-});
+}));

@@ -1,8 +1,9 @@
 import { Fragment, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 
 import { parseHours, type Occurrence } from '../lib/useTasks';
-import { colors, fonts } from '../theme';
+import { useColors } from '../lib/theme';
+import { fonts, themed } from '../theme';
 import { Icon } from './Icon';
 import { TaskItem } from './TaskItem';
 
@@ -71,6 +72,8 @@ type HoursPromptProps = {
 
 /** „Stunden?“ mit ein paar schnellen Werten und einem Feld für alles andere. Überspringen geht immer. */
 function HoursPrompt({ title, onPick, onSkip }: HoursPromptProps) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [text, setText] = useState('');
   const submit = () => {
     const hours = parseHours(text);
@@ -125,6 +128,8 @@ type AddRowProps = {
 
 /** Leise Zeile „+ Aufgabe hinzufügen“ am Ende eines Tages. Öffnet das Fenster für eine neue Aufgabe. */
 function AddRow({ label, alone, onPress }: AddRowProps) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   return (
     <Pressable
@@ -141,7 +146,7 @@ function AddRow({ label, alone, onPress }: AddRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   // Eingerückt unter die Beschreibung, damit klar ist, zu welcher Aufgabe die Frage gehört.
   prompt: {
     flexDirection: 'row',
@@ -218,4 +223,4 @@ const styles = StyleSheet.create({
   addTextStrong: {
     color: colors.ink,
   },
-});
+}));

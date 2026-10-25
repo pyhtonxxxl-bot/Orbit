@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, fonts, space } from '../theme';
+import { useColors } from '../lib/theme';
+import { fonts, space, themed } from '../theme';
 import { Icon } from './Icon';
 
 type Props = {
@@ -31,6 +32,8 @@ export function WeekFooter({
   onToday,
   onAdd,
 }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const nav = (
     <View style={styles.nav}>
       <FooterButton onPress={onPrev} label="Vorherige Woche" canHover={canHover} style={styles.arrowButton}>
@@ -84,6 +87,8 @@ export function WeekFooter({
 
 /** Runder dunkler Plus-Knopf, wie der Knopf der Wisch-Leiste. Auch als schwebender Knopf am Handy. */
 export function AddButton({ onPress, canHover, size = 40 }: { onPress: () => void; canHover: boolean; size?: number }) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   return (
     <Pressable
@@ -99,7 +104,7 @@ export function AddButton({ onPress, canHover, size = 40 }: { onPress: () => voi
         pressed && styles.pressed,
       ]}
     >
-      <Icon name="plus" size={size * 0.5} color={colors.white} strokeWidth={2} />
+      <Icon name="plus" size={size * 0.5} color={colors.inverse} strokeWidth={2} />
     </Pressable>
   );
 }
@@ -114,6 +119,8 @@ type FooterButtonProps = {
 };
 
 function FooterButton({ onPress, canHover, style, children, label, hidden = false }: FooterButtonProps) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   return (
     <Pressable
@@ -136,7 +143,7 @@ function FooterButton({ onPress, canHover, style, children, label, hidden = fals
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   footer: {
     backgroundColor: colors.footer,
     paddingHorizontal: space.gutter,
@@ -250,4 +257,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     color: colors.inkMuted,
   },
-});
+}));

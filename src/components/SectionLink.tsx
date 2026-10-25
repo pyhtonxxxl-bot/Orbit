@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import { enterActivates } from '../lib/web';
-import { colors, fonts } from '../theme';
+import { useColors } from '../lib/theme';
+import { fonts, themed } from '../theme';
 import { Icon } from './Icon';
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
 
 /** Kleiner Link mit Pfeil im Kopf eines Bands, z. B. „Woche →“ auf der Startseite. */
 export function SectionLink({ label, canHover, onPress, style }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   return (
     <Pressable
@@ -34,7 +37,7 @@ export function SectionLink({ label, canHover, onPress, style }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   link: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -60,4 +63,4 @@ const styles = StyleSheet.create({
   labelHovered: {
     color: colors.ink,
   },
-});
+}));

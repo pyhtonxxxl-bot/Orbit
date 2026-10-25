@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { formatDate, formatTime } from '../lib/date';
 import { heading } from '../lib/web';
-import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
+import { useColors } from '../lib/theme';
+import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, fonts, space, themed } from '../theme';
 
 type Props = {
   /** Wochentag, für Bedienhilfen. */
@@ -55,6 +56,8 @@ export function DayBand({
   onPressHeader,
   children,
 }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   const rowY = wide ? space.rowYWide : space.rowY;
   const total = count?.total ?? 0;
@@ -191,7 +194,7 @@ export function DayBand({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   // Die Bänder teilen sich übrige Höhe, damit der Stapel immer den ganzen Bildschirm füllt.
   row: {
     flexGrow: 1,
@@ -312,4 +315,4 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: 620,
   },
-});
+}));

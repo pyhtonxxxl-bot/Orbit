@@ -5,8 +5,8 @@ Eine minimalistische Life-Tracking-App fürs Handy **und** den PC, dein privater
 - **Start:** ein ruhiger Sperrbildschirm: links ein unscharfer Statuenkopf, rechts ORBIT. Du entsperrst am Handy, indem du die Leiste nach rechts wischst, am PC mit **gedrückter Leertaste**.
 - **Startseite:** Begrüßung, dann dein Tag aufgeteilt in **Habits** (jeden Tag dasselbe abhaken) und **Todos** (Aufgaben für heute), darunter die kommenden Werkzeuge. Die Seitenleiste (am Handy über das Menü-Symbol) führt zu allen Seiten.
 - **Habits:** jeden Tag eine frische Liste mit Kästchen, aufgebaut wie die Todos. Welche Habits an welchen Wochentagen anstehen, legst du in den Einstellungen fest. Dazu die Serie („10 Tage in Folge“).
-- **Todos:** ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/), sieben gestapelte Tagesbänder von hell nach dunkel. Jede Aufgabe kann ein „Bis“-Datum (dann steht sie jeden Tag bis dahin drin), gearbeitete Stunden, einen Link und Tags haben.
-- **Einstellungen:** Habits anlegen und festlegen, an welchen Tagen sie sich wiederholen; Tags (z. B. Schule) anlegen, umbenennen und löschen.
+- **Todos:** ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/), sieben gestapelte Tagesbänder von hell nach dunkel. Jede Aufgabe kann ein „Bis“-Datum (dann steht sie jeden Tag bis dahin drin, oder nur an den Tagen, die du im Mini-Kalender wählst), gearbeitete Stunden, einen Link und Tags haben.
+- **Einstellungen:** Habits anlegen und festlegen, an welchen Tagen sie sich wiederholen; Tags (z. B. Schule) anlegen, umbenennen und löschen; die Darstellung zwischen Hell und Dunkel (schwarz/grau) umschalten.
 
 **Am PC** liegt die ganze Woche offen da, links der Tag, rechts die Aufgaben:
 
@@ -26,6 +26,7 @@ Eine minimalistische Life-Tracking-App fürs Handy **und** den PC, dein privater
 - Abhaken mit dem Kästchen, danach fragt eine kleine Zeile nach den gearbeiteten **Stunden** (½, 1, 2, 3 oder eine eigene Zahl, überspringen geht)
 - Ein Klick auf die Beschreibung öffnet ein kleines Fenster (am PC rechts über der Liste, am Handy von unten) mit:
   - **Bis:** die Aufgabe steht jeden Tag bis dahin in der Liste, wird pro Tag abgehakt und ist am letzten Tag orange markiert („Fällig“, danach „Überfällig“)
+  - **Tage:** mit Bis wählst du im Mini-Kalender, an welchen Tagen davor sie in der Liste steht (sonst jeden Tag; der Fälligkeitstag ist immer dabei)
   - **Stunden:** für den Tag, plus Summe über alle Tage
   - **Link:** einfügen und mit einem Klick öffnen
   - **Tags:** z. B. Schule, Arbeit, Privat
@@ -94,16 +95,17 @@ src/app/todos.tsx          Der Wochen-Planer
 src/components/gate/       Sperrbildschirm und Wisch-Leiste zum Entsperren
 src/components/shell/      Seitenleiste, Schublade fürs Handy, Kopfzeile
 assets/lock/               Statuenkopf (Original und unscharfe Fassung, siehe scripts/make-lock-image.py)
-src/app/einstellungen.tsx  Einstellungen (Habits, Tags)
+src/app/einstellungen.tsx  Einstellungen (Habits, Tags, Darstellung)
 src/components/            DayBand, TaskList, TaskItem, TaskPanel, DatePicker, HabitItem, Checkbox, WeekFooter
 src/lib/date.ts            Wochen- und Datumslogik (deutsch)
 src/lib/storage.ts         Lokales Speichern (gemeinsam für Todos und Habits)
-src/lib/useTasks.ts        Todos (Bis, Stunden, Link, Tags)
+src/lib/useTasks.ts        Todos (Bis, Tage, Stunden, Link, Tags)
 src/lib/useTags.ts         Tags
 src/lib/useTaskPanel.ts    Welche Aufgabe im Fenster offen ist
 src/lib/useHabits.ts       Habits und Serien
 src/lib/useLayout.ts       Handy- oder PC-Layout je nach Fensterbreite
-src/theme.ts               Farben, Schrift, Abstände (hier wird der Look justiert)
+src/theme.ts               Farben (Hell und Dunkel), Schrift, Abstände (hier wird der Look justiert)
+src/lib/theme.tsx          Hell/Dunkel umschalten und merken
 public/index.html          HTML-Hülle für den Browser
 ```
 

@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DayBand } from '../components/DayBand';
@@ -21,7 +21,8 @@ import { useTaskPanel } from '../lib/useTaskPanel';
 import { tasksOn, useTasks } from '../lib/useTasks';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
 import { enterActivates, heading } from '../lib/web';
-import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, colors, fonts, space } from '../theme';
+import { useColors } from '../lib/theme';
+import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, fonts, space, themed } from '../theme';
 
 const tap = () => Haptics.selectionAsync().catch(() => {});
 
@@ -34,6 +35,8 @@ function greeting(date: Date): string {
 
 /** Startseite: Begrüßung, heute aufgeteilt in Habits und Todos, darunter die kommenden Werkzeuge. */
 export default function HomeScreen() {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const { wide, gutter } = useLayout();
   const canHover = useCanHover();
@@ -237,6 +240,8 @@ type HabitsTodayProps = {
 
 /** Band „Habits“: die Habits, die heute anstehen, zum Abhaken, mit Link zur Wochenansicht. */
 function HabitsToday({ habits, anyHabits, now, color, wide, gutter, canHover, onToggle }: HabitsTodayProps) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const todayKey = dateKey(now);
   const done = habits.filter((h) => h.done.includes(todayKey)).length;
   const rowY = wide ? space.rowYWide : space.rowY;
@@ -326,6 +331,8 @@ type ToolBandProps = {
 };
 
 function ToolBand({ name, icon, description, color, wide, gutter, canHover, onPress }: ToolBandProps) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   const soon = !onPress;
   const rowY = wide ? space.rowYWide : space.rowY;
@@ -363,7 +370,7 @@ function ToolBand({ name, icon, description, color, wide, gutter, canHover, onPr
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.footer,
@@ -541,4 +548,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     color: colors.inkMuted,
   },
-});
+}));

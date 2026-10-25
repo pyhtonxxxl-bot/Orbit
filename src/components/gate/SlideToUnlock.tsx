@@ -5,13 +5,13 @@ import {
   PanResponder,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   View,
   type LayoutChangeEvent,
 } from 'react-native';
 
-import { colors, fonts } from '../../theme';
+import { useColors } from '../../lib/theme';
+import { fonts, themed } from '../../theme';
 import { Icon } from '../Icon';
 
 type Props = {
@@ -37,6 +37,8 @@ function noBrowserGestures(node: unknown) {
 
 /** Wisch-Leiste wie ein Hardware-Schalter: Knopf ganz nach rechts ziehen öffnet die App. */
 export function SlideToUnlock({ onUnlock, holdSpace }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [progress] = useState(() => new Animated.Value(0));
   const [trackWidth, setTrackWidth] = useState(0);
   const maxX = Math.max(1, trackWidth - KNOB - PAD * 2);
@@ -182,13 +184,13 @@ export function SlideToUnlock({ onUnlock, holdSpace }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   track: {
     width: '100%',
     maxWidth: 360,
     height: HEIGHT,
     borderRadius: HEIGHT / 2,
-    backgroundColor: colors.pill,
+    backgroundColor: colors.track,
     justifyContent: 'center',
     overflow: 'hidden',
     userSelect: 'none',
@@ -236,7 +238,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 14,
     letterSpacing: 0.3,
-    color: colors.ink,
+    color: colors.knobInk,
     userSelect: 'none',
   },
-});
+}));

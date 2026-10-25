@@ -7,12 +7,13 @@ import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { LockScreen } from '../components/gate/LockScreen';
 import { Shell } from '../components/shell/Shell';
 import { setInert } from '../lib/web';
-import { colors } from '../theme';
+import { ThemeProvider, useTheme } from '../lib/theme';
+import { themed } from '../theme';
 
 // Für Tests und Entwicklung im Browser: `?intro=0` überspringt den Sperrbildschirm.
 const skipGate =
@@ -20,7 +21,18 @@ const skipGate =
   typeof window !== 'undefined' &&
   new URLSearchParams(window.location.search).get('intro') === '0';
 
+/** Ganz außen das Design (hell/dunkel), damit alles darunter die richtigen Farben bekommt. */
 export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  );
+}
+
+function App() {
+  const { theme, colors } = useTheme();
+  const styles = getStyles(colors);
   const [fontsLoaded, fontError] = useFonts({
     Barlow_400Regular,
     Barlow_500Medium,
@@ -28,7 +40,7 @@ export default function RootLayout() {
     Barlow_800ExtraBold,
   });
 
-  // Beim Öffnen blendet der Sperrbildschirm aus Weiß ein, nach „Sperren“ in der Seitenleiste gleitet er herein.
+  // Beim Öffnen blendet der Sperrbildschirm aus dem Seitengrund ein, nach „Sperren“ in der Seitenleiste gleitet er herein.
   const [gate, setGate] = useState<'start' | 'lock' | null>(skipGate ? null : 'start');
   // Die App wird erst beim ersten Entsperren eingehängt und bleibt danach stehen, auch beim Sperren:
   // so kommst du nach dem Entsperren genau dorthin zurück, wo du warst.
@@ -46,7 +58,7 @@ export default function RootLayout() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       {appMounted && (
         <View
           ref={appRef}
@@ -72,7 +84,7 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.paper,
@@ -80,4 +92,4 @@ const styles = StyleSheet.create({
   app: {
     flex: 1,
   },
-});
+}));
