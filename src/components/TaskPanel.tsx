@@ -19,7 +19,16 @@ import { formatLongDate, fromDateKey } from '../lib/date';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
 import type { PanelState } from '../lib/useTaskPanel';
 import type { Tag } from '../lib/useTags';
-import type { Task, TaskDetails } from '../lib/useTasks';
+import {
+  formatHours,
+  hoursOn,
+  isDoneOn,
+  lastDay,
+  parseHours,
+  totalHours,
+  type Task,
+  type TaskDetails,
+} from '../lib/useTasks';
 import { focusFirst, spaceToggles } from '../lib/web';
 import { colors, fonts } from '../theme';
 import { Checkbox } from './Checkbox';
@@ -37,7 +46,10 @@ type Props = {
   onClose: () => void;
   onCreate: (day: string, details: TaskDetails) => void;
   onUpdate: (patch: Partial<TaskDetails>) => void;
+  /** Haken für den Tag, an dem das Fenster geöffnet wurde. */
   onToggle: () => void;
+  /** Gearbeitete Stunden an diesem Tag, ohne Zahl gelöscht. */
+  onHours: (hours: number | undefined) => void;
   onRemove: () => void;
   /** Zu den Einstellungen, um Tags anzulegen oder umzubenennen. */
   onEditTags: () => void;
@@ -52,8 +64,13 @@ function normalizeLink(raw: string): string {
   return /^[a-z][a-z0-9+.-]*:/i.test(link) ? link : `https://${link}`;
 }
 
+/** `1.5` → `1,5`, für das Stundenfeld. */
+function hoursInput(hours: number | undefined): string {
+  return hours ? String(hours).replace('.', ',') : '';
+}
+
 /**
- * Fenster für eine Aufgabe: Beschreibung, Fälligkeit, Link und Tags. Neue Aufgaben entstehen hier
+ * Fenster für eine Aufgabe: Beschreibung, Bis, Stunden, Link und Tags. Neue Aufgaben entstehen hier
  * auch (Plus oder Klick auf einen Tag). Schließen mit ×, Escape oder (Handy) Tippen daneben.
  */
 export function TaskPanel({
@@ -66,6 +83,7 @@ export function TaskPanel({
   onCreate,
   onUpdate,
   onToggle,
+  onHours,
   onRemove,
   onEditTags,
 }: Props) {
@@ -86,6 +104,16 @@ export function TaskPanel({
   const due = isNew ? draftDue : task?.due;
   const selectedTags = isNew ? draftTags : (task?.tags ?? []);
   const validLink = normalizeLink(link);
+  // Bestehende Aufgabe: Haken und Stunden gelten für den Tag, an dem das Fenster geöffnet wurde.
+  const date = state.mode === 'edit' ? state.date : state.day;
+  const end = task ? lastDay(task, state.day) : (due ?? state.day);
+  const ranged = end > state.day;
+  const done = !!task && isDoneOn(task, state.day, date);
+  const dayHours = task ? hoursOn(task, date) : undefined;
+  const total = task ? totalHours(task) : 0;
+  const [hoursText, setHoursText] = useState(hoursInput(dayHours));
+  const dueHere = !!due && date === end && !done;
+  const overdue = !!task && !!due && due < todayKey && !isDoneOn(task, state.day, end);
 
   const commitTitle = () => {
     if (isNew || !task) return;
@@ -113,10 +141,16 @@ export function TaskPanel({
     onCreate(state.day, { title: trimmed, due: draftDue, link: validLink || undefined, tags: draftTags });
     onClose();
   };
+  const commitHours = () => {
+    const next = parseHours(hoursText);
+    setHoursText(hoursInput(next));
+    if (!isNew && next !== dayHours) onHours(next);
+  };
   // Beim Schließen noch offene Eingaben übernehmen (das Feld verliert den Fokus nicht immer vorher).
   const close = () => {
     commitTitle();
     commitLink();
+    commitHours();
     onClose();
   };
 
@@ -165,8 +199,7 @@ export function TaskPanel({
     Animated.timing(slide, { toValue: 1, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [wide, slide]);
 
-  const dayLine = isNew ? `Für ${formatLongDate(fromDateKey(state.day))}` : formatLongDate(fromDateKey(state.day));
-  const overdue = !!due && !task?.done && due < todayKey;
+  const dayLine = isNew ? `Ab ${formatLongDate(fromDateKey(state.day))}` : formatLongDate(fromDateKey(date));
 
   const content = (
     <>
@@ -180,11 +213,11 @@ export function TaskPanel({
             {...spaceToggles(onToggle)}
             onPress={onToggle}
             role="checkbox"
-            aria-checked={!!task?.done}
-            aria-label="Erledigt"
+            aria-checked={done}
+            aria-label={ranged ? `Am ${formatLongDate(fromDateKey(date))} erledigt` : 'Erledigt'}
             style={({ pressed }) => [styles.check, styles.clickable, pressed && styles.pressed]}
           >
-            <Checkbox checked={!!task?.done} due={!!due && !task?.done} />
+            <Checkbox checked={done} due={dueHere} />
           </Pressable>
         )}
         <TextInput
@@ -203,7 +236,7 @@ export function TaskPanel({
           placeholder="Beschreibung…"
           placeholderTextColor={colors.inkFaint}
           aria-label="Beschreibung"
-          style={[styles.title, isWeb && { height: Math.max(31, titleHeight) }, task?.done && styles.titleDone]}
+          style={[styles.title, isWeb && { height: Math.max(31, titleHeight) }, done && styles.titleDone]}
         />
         <Pressable
           onPress={close}
@@ -214,16 +247,16 @@ export function TaskPanel({
           <Icon name="close" size={20} color={colors.control} />
         </Pressable>
       </View>
-      {!due && <Text style={styles.dayLine}>{dayLine}</Text>}
+      <Text style={styles.dayLine}>{dayLine}</Text>
 
       <View style={styles.list}>
-        <Row label="Fällig">
+        <Row label="Bis">
           <View style={styles.dueLine}>
             <Pressable
               onPress={() => setCalendarOpen((open) => !open)}
               role="button"
               aria-expanded={calendarOpen}
-              aria-label={due ? `Fällig am ${formatLongDate(fromDateKey(due))}, ändern` : 'Fälligkeit wählen'}
+              aria-label={due ? `Bis ${formatLongDate(fromDateKey(due))}, ändern` : 'Bis wann? Datum wählen'}
               style={({ pressed }) => [styles.valueButton, pressed && styles.pressed]}
             >
               <Text style={[styles.value, !due && styles.valueEmpty]}>
@@ -238,7 +271,7 @@ export function TaskPanel({
                   setCalendarOpen(false);
                 }}
                 role="button"
-                aria-label="Fälligkeit entfernen"
+                aria-label="Bis-Datum entfernen"
                 hitSlop={8}
                 style={({ pressed }) => [styles.clear, pressed && styles.pressed]}
               >
@@ -258,7 +291,33 @@ export function TaskPanel({
               />
             </View>
           )}
+          {ranged && !calendarOpen && <Text style={styles.note}>Steht jeden Tag bis dahin in der Liste.</Text>}
         </Row>
+
+        {!isNew && (
+          <Row label="Stunden">
+            <View style={styles.hoursLine}>
+              <TextInput
+                value={hoursText}
+                onChangeText={setHoursText}
+                onBlur={commitHours}
+                onSubmitEditing={commitHours}
+                onKeyPress={escapeCloses}
+                placeholder="0"
+                placeholderTextColor={colors.inkFaint}
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+                returnKeyType="done"
+                aria-label={`Stunden am ${formatLongDate(fromDateKey(date))}`}
+                style={styles.hoursInput}
+              />
+              <Text style={styles.hoursUnit}>
+                Std.{ranged ? ` am ${formatLongDate(fromDateKey(date)).split(',')[0]}` : ''}
+              </Text>
+              {total > 0 && total !== (dayHours ?? 0) && <Text style={styles.note}>· gesamt {formatHours(total)}</Text>}
+            </View>
+          </Row>
+        )}
 
         <Row label="Link">
           <View style={styles.linkLine}>
@@ -587,6 +646,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginLeft: -76,
     alignItems: 'center',
+  },
+  note: {
+    marginTop: 2,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.inkMuted,
+  },
+  hoursLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    minHeight: 28,
+  },
+  hoursInput: {
+    width: 56,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: colors.hover,
+    fontFamily: fonts.medium,
+    fontSize: 15,
+    textAlign: 'center',
+    color: colors.ink,
+    outlineWidth: 0,
+  },
+  hoursUnit: {
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    color: colors.inkMuted,
   },
   linkLine: {
     flexDirection: 'row',

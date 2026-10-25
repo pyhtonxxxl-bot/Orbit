@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { LayoutAnimation, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DayRow } from '../components/DayRow';
+import { DayBand } from '../components/DayBand';
+import { TaskList } from '../components/TaskList';
 import { TaskPanel } from '../components/TaskPanel';
 import { AddButton, WeekFooter } from '../components/WeekFooter';
 import { PageHeader } from '../components/shell/PageHeader';
@@ -15,7 +16,7 @@ import { useCanHover, useLayout } from '../lib/useLayout';
 import { useNow } from '../lib/useNow';
 import { useTags } from '../lib/useTags';
 import { useTaskPanel } from '../lib/useTaskPanel';
-import { useTasks } from '../lib/useTasks';
+import { tasksOn, useTasks } from '../lib/useTasks';
 import { useWeekNav } from '../lib/useWeekNav';
 import { isDialogOpen } from '../lib/web';
 import { colors } from '../theme';
@@ -35,13 +36,13 @@ export default function TodosScreen() {
   // Ohne feste Seitenleiste gibt es oben eine Kopfzeile mit Menü-Symbol; sie übernimmt dann den Statusleisten-Abstand.
   const hasHeader = !!shell && !shell.sidebarDocked;
   const now = useNow();
-  const { tasks, loaded, add, update, toggle, remove } = useTasks();
+  const { tasks, loaded, add, update, toggle, setHours, remove } = useTasks();
   const { tags } = useTags();
   const { panel, task: panelTask, openNew, openTask, close, moveTo } = useTaskPanel(tasks);
   const keyboard = useKeyboardInset();
 
-  // Am Handy ist beim Start der heutige Tag aufgeklappt, wie ein aufgeschlagenes Notizbuch.
-  // Am PC ist Platz genug, dort sind alle Tage offen.
+  // Wie ein Notizbuch: beim Start ist heute aufgeklappt, ein Klick auf einen anderen Tag klappt den auf
+  // und die übrigen zu. Am Handy und am PC gleich.
   const [expanded, setExpanded] = useState<string | null>(TODAY);
   const todayKey = dateKey(now);
   const expandedKey = expanded === TODAY ? todayKey : expanded;
@@ -52,8 +53,8 @@ export default function TodosScreen() {
   );
   const days = WEEKDAYS.map((label, i) => ({ label, date: addDays(weekStart, i) }));
 
-  // Neue Aufgabe ohne bestimmten Tag (Plus, Taste N): am Handy der offene Tag, sonst heute bzw. Montag der Woche.
-  const defaultDay = !wide && expandedKey ? expandedKey : isCurrentWeek ? todayKey : dateKey(weekStart);
+  // Neue Aufgabe ohne bestimmten Tag (Plus, Taste N): der offene Tag, sonst heute bzw. Montag der Woche.
+  const defaultDay = expandedKey ?? (isCurrentWeek ? todayKey : dateKey(weekStart));
   const newRef = useRef(() => openNew(defaultDay));
   useEffect(() => {
     newRef.current = () => openNew(defaultDay);
@@ -119,29 +120,37 @@ export default function TodosScreen() {
       >
         {days.map(({ label, date }, i) => {
           const key = dateKey(date);
+          const items = tasksOn(tasks, key);
           return (
-            <DayRow
+            <DayBand
               key={key}
               label={label}
               date={date}
               now={now}
               color={colors.days[i]}
               isToday={key === todayKey}
-              expanded={wide || expandedKey === key}
+              expanded={expandedKey === key}
               wide={wide}
               gutter={gutter}
-              canHover={canHover}
               topInset={i === 0 && !hasHeader ? insets.top : 0}
-              tasks={tasks[key] ?? []}
-              selectedId={panel?.mode === 'edit' ? panel.id : undefined}
+              count={{ done: items.filter((it) => it.done).length, total: items.length }}
               onPressHeader={() => toggleDay(key)}
-              onAdd={() => openNew(key)}
-              onToggle={(id) => {
-                tap();
-                toggle(key, id);
-              }}
-              onOpen={(id) => openTask(key, id)}
-            />
+            >
+              <TaskList
+                label={label}
+                items={items}
+                todayKey={todayKey}
+                canHover={canHover}
+                selected={panel?.mode === 'edit' ? `${panel.id}@${panel.date}` : undefined}
+                onToggle={(item) => {
+                  tap();
+                  toggle(item.start, item.task.id, item.day);
+                }}
+                onOpen={(item) => openTask(item.start, item.task.id, item.day)}
+                onHours={(item, hours) => setHours(item.start, item.task.id, item.day, hours)}
+                onAdd={() => openNew(key)}
+              />
+            </DayBand>
           );
         })}
         {/* Am Handy scrollt die Wochen-Navigation mit, am PC bleibt sie unten immer sichtbar. */}
@@ -161,7 +170,7 @@ export default function TodosScreen() {
 
       {panel && (
         <TaskPanel
-          key={panel.mode === 'edit' ? panel.id : `new-${panel.day}`}
+          key={panel.mode === 'edit' ? `${panel.id}@${panel.date}` : `new-${panel.day}`}
           state={panel}
           task={panelTask}
           tags={tags}
@@ -180,7 +189,10 @@ export default function TodosScreen() {
           onToggle={() => {
             if (panel.mode !== 'edit') return;
             tap();
-            toggle(panel.day, panel.id);
+            toggle(panel.day, panel.id, panel.date);
+          }}
+          onHours={(hours) => {
+            if (panel.mode === 'edit') setHours(panel.day, panel.id, panel.date, hours);
           }}
           onRemove={() => {
             if (panel.mode !== 'edit') return;

@@ -8,15 +8,16 @@ Orbit ist eine minimalistische Life-Tracking-App, ein privater Manager statt zeh
 - **Start:** `src/components/gate/LockScreen.tsx`: blendet aus Weiß ein, links der unscharfe Statuenkopf (`assets/lock/statue-blur.jpg`, erzeugt mit `scripts/make-lock-image.py`), rechts ORBIT. Keine Animation darüber hinaus. Entsperren: am Handy die Wisch-Leiste (`SlideToUnlock`) nach rechts ziehen, am PC die Leertaste gedrückt halten (oder ziehen). Im Browser überspringt `?intro=0` den Sperrbildschirm (für Tests).
 - **Sperren:** „Sperren“ in der Seitenleiste schiebt den Sperrbildschirm wieder herein. Die App bleibt darunter geladen (Seite und Eingaben bleiben erhalten) und ist im Browser solange `inert`.
 - **Hülle:** `src/components/shell/`: Seitenleiste ab 1100 px fest links, darunter als Schublade über das Menü-Symbol (`PageHeader`). Browser-Helfer (inert, Fokus, Enter auf Links) liegen in `src/lib/web.ts`.
-- **Seiten:** `/` Startseite (Willkommen, heute aufgeteilt in Habits und Todos, kommende Werkzeuge), `/habits` Habits (pro Habit ein Band mit den sieben Tagen zum Abhaken und der Serie), `/todos` Wochenplaner (`/woche` leitet dorthin weiter), `/einstellungen` (Tags bearbeiten).
-- **Aufgaben:** In der Liste nur Kästchen + Beschreibung (`TaskItem`). Klick auf die Beschreibung öffnet `TaskPanel`: am PC ein kleines Fenster rechts über der Liste (verschiebt nichts, × oder Escape schließt), am Handy ein Blatt von unten. Darin Fällig (`DatePicker`), Link und Tags als Aufzählung mit Punkten. Neue Aufgabe: Klick auf ein Tagesband (PC), „+ Aufgabe hinzufügen“, das Plus (PC in der Wochenleiste, Handy schwebend) oder N. Eine Fälligkeit verschiebt die Aufgabe an diesen Tag, dort ist sie orange markiert.
+- **Seiten:** `/` Startseite (Willkommen, heute aufgeteilt in Habits und Todos, kommende Werkzeuge), `/habits` Habits (Wochentage wie bei den Todos, an jedem Tag frische Kästchen für die Habits, die an dem Tag anstehen), `/todos` Wochenplaner (`/woche` leitet dorthin weiter), `/einstellungen` (Habits mit ihren Wochentagen, Tags).
+- **Tagesbänder:** `DayBand` ist ein Akkordeon, am Handy wie am PC: immer höchstens ein Tag offen (beim Start heute), ein Klick auf einen anderen Tag klappt den auf und die übrigen zu.
+- **Aufgaben:** In der Liste nur Kästchen + Beschreibung (`TaskItem`). Klick auf die Beschreibung öffnet `TaskPanel`: am PC ein kleines Fenster rechts über der Liste (verschiebt nichts, × oder Escape schließt), am Handy ein Blatt von unten. Darin Bis (`DatePicker`), Stunden, Link und Tags als Aufzählung mit Punkten. Neue Aufgabe: „+ Aufgabe hinzufügen“ im offenen Tag, das Plus (PC in der Wochenleiste, Handy schwebend) oder N. Mit „Bis“ steht eine Aufgabe an jedem Tag von ihrem Starttag bis dahin in der Liste (`tasksOn()`), wird pro Tag abgehakt und ist am letzten Tag orange markiert. Nach dem Abhaken fragt die Liste nach den gearbeiteten Stunden (pro Tag in `log`, Summe im Fenster).
 
 ## Design ist das Wichtigste
 - Look: gestapelte Tagesbänder in Graustufen, von hell (Montag) nach dunkel (Sonntag), dazu genau **eine** Akzentfarbe (Orange `colors.accent`). Schrift: Barlow (ExtraBold für Tage, Regular/Medium für Text).
 - Farben, Schriften und Abstände **nur** über `src/theme.ts`, keine Hex-Werte in Komponenten.
 - Jede UI-Änderung muss in **beiden** Layouts gut aussehen (`src/lib/useLayout.ts`):
-  - **compact** (< 860 px Inhaltsbreite, Handy/Tablet hoch): Akkordeon, ein Tag offen.
-  - **wide** (≥ 860 px Inhaltsbreite, PC/Tablet quer): alle Tage offen, Tag + Datum links, Aufgaben rechts; die Woche soll auf einen 1280×720-Bildschirm passen.
+  - **compact** (< 860 px Inhaltsbreite, Handy/Tablet hoch): Tag oben, Inhalt darunter.
+  - **wide** (≥ 860 px Inhaltsbreite, PC/Tablet quer): Tag + Datum links, Inhalt rechts; die Woche soll auf einen 1280×720-Bildschirm passen.
   - Inhaltsbreite = Fenster minus Seitenleiste (`useShell().contentWidth`).
 - Am PC: Hover-Zustände, Mauszeiger (`cursor: 'pointer'`), Tastatur (Leertaste halten entsperrt, ← → Woche und T heute in Todos und Habits, N neue Aufgabe, Escape schließt das Fenster), kein Browser-Fokusrahmen in Eingabefeldern.
 - Icons: eigene Linien-Icons in `src/components/Icon.tsx` (react-native-svg), keine Icon-Fonts.
@@ -24,8 +25,7 @@ Orbit ist eine minimalistische Life-Tracking-App, ein privater Manager statt zeh
 
 ## Code
 - Routen in `src/app/`, alles andere in `src/components/` und `src/lib/`.
-- Daten: `src/lib/useTasks.ts` (Todos, Schlüssel `orbit.tasks.v1`, optional `due`/`link`/`tags` je Aufgabe), `src/lib/useTags.ts` (Tags, `orbit.tags.v1`) und `src/lib/useHabits.ts` (Habits, `orbit.habits.v1`), alle über `useStoredState` aus `src/lib/storage.ts` (AsyncStorage, im Browser localStorage). Speicherschlüssel nur mit Migration ändern.
-- Listen beliebiger Länge (z. B. Habits) bekommen ihre Grautöne über `bandColor()` aus `src/theme.ts`.
+- Daten: `src/lib/useTasks.ts` (Todos, Schlüssel `orbit.tasks.v1`, nach Starttag; optional `due`/`link`/`tags`/`log` je Aufgabe), `src/lib/useTags.ts` (Tags, `orbit.tags.v1`) und `src/lib/useHabits.ts` (Habits, `orbit.habits.v1`, optional `days` = Wochentage), alle über `useStoredState` aus `src/lib/storage.ts` (AsyncStorage, im Browser localStorage). Speicherschlüssel nur mit Migration ändern.
 - Neue Pakete immer mit `npx expo install <paket>`.
 
 ## Vor jedem Commit prüfen

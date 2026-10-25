@@ -16,6 +16,8 @@ export const colors = {
   // Hover auf ganzen Bändern hellt auf statt abzudunkeln, sonst kippt die Hell-dunkel-Treppe.
   hoverBand: 'rgba(255, 255, 255, 0.22)',
   focus: 'rgba(0, 0, 0, 0.35)',
+  // Kleine Auswahl-Schilder auf den Bändern (z. B. Stunden nach dem Abhaken).
+  chip: 'rgba(255, 255, 255, 0.45)',
 
   accent: '#E4642B',
   // Dasselbe Orange, dunkler: für kleine Schrift auf Weiß (Kontrast 5:1).
@@ -36,22 +38,6 @@ export const colors = {
   active: 'rgba(0, 0, 0, 0.07)',
   backdrop: 'rgba(0, 0, 0, 0.28)',
 };
-
-/**
- * Grau für Band `index` von `count` in Listen beliebiger Länge (z. B. Habits): dieselbe Hell-dunkel-Treppe
- * wie die Wochentage, vom zweiten Tagesband an. Bis zu sechs Bänder bekommen genau die Tagesfarben,
- * bei mehr wird die Treppe feiner, endet aber nie dunkler als Sonntag.
- */
-export function bandColor(index: number, count: number): string {
-  const steps = colors.days.length - 1;
-  const t = Math.min(steps, 1 + (index * (steps - 1)) / Math.max(steps - 1, count - 1));
-  const lo = Math.floor(t);
-  const hi = Math.min(steps, lo + 1);
-  const grey = (hex: string) => parseInt(hex.slice(1, 3), 16);
-  const v = Math.round(grey(colors.days[lo]) + (grey(colors.days[hi]) - grey(colors.days[lo])) * (t - lo));
-  const h = v.toString(16).padStart(2, '0');
-  return `#${h}${h}${h}`.toUpperCase();
-}
 
 export const fonts = {
   regular: 'Barlow_400Regular',
