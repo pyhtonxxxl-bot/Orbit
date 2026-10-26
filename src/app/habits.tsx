@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutAnimation, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DayBand } from '../components/DayBand';
@@ -15,7 +15,8 @@ import { isDaily, isScheduled, streak, useHabits, type Habit } from '../lib/useH
 import { useCanHover, useLayout } from '../lib/useLayout';
 import { useNow } from '../lib/useNow';
 import { useWeekNav } from '../lib/useWeekNav';
-import { colors, fonts } from '../theme';
+import { useColors } from '../lib/theme';
+import { fonts, themed } from '../theme';
 
 const tap = () => Haptics.selectionAsync().catch(() => {});
 const animate = () => LayoutAnimation.configureNext(LayoutAnimation.create(220, 'easeInEaseOut', 'opacity'));
@@ -28,6 +29,8 @@ const TODAY = 'today';
  * Tag anstehen, steht in den Einstellungen.
  */
 export default function HabitsScreen() {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const { wide, gutter } = useLayout();
   const canHover = useCanHover();
@@ -135,6 +138,8 @@ type HabitListProps = {
 
 /** Die Kästchen eines Tages. Die Serie steht nur bei heute, sie zählt bis heute. */
 function HabitList({ habits, anyHabits, dayKey, todayKey, now, canHover, onToggle }: HabitListProps) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const future = dayKey > todayKey;
   return (
     <>
@@ -159,6 +164,8 @@ function HabitList({ habits, anyHabits, dayKey, todayKey, now, canHover, onToggl
 
 /** Leise Zeile zu den Einstellungen, dort werden Habits angelegt und ihre Tage festgelegt. */
 function ManageRow({ label }: { label: string }) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   return (
     <Pressable
@@ -175,7 +182,7 @@ function ManageRow({ label }: { label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.footer,
@@ -233,4 +240,4 @@ const styles = StyleSheet.create({
     opacity: 0.94,
     pointerEvents: 'none',
   },
-});
+}));

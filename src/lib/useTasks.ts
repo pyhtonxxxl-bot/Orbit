@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 
+import { addDays, dateKey, fromDateKey } from './date';
 import { newId, useStoredState } from './storage';
 
 /** Was an einem Tag zu einer Aufgabe festgehalten ist. */
@@ -27,10 +28,15 @@ export type Task = {
   tags?: string[];
   /** Pro Tag (`dateKey`): abgehakt und Stunden. */
   log?: Record<string, DayLog>;
+  /**
+   * Mit „Bis“: an welchen Tagen vor dem Fälligkeitstag sie in der Liste steht (`dateKey`s).
+   * Fehlt = jeden Tag. Der Fälligkeitstag selbst gehört immer dazu.
+   */
+  on?: string[];
 };
 
 /** Was sich an einer Aufgabe im Fenster bearbeiten lässt. */
-export type TaskDetails = Pick<Task, 'title' | 'due' | 'link' | 'tags'>;
+export type TaskDetails = Pick<Task, 'title' | 'due' | 'link' | 'tags' | 'on'>;
 
 /** Aufgaben nach ihrem Starttag, Schlüssel ist `dateKey()`. */
 export type TaskMap = Record<string, Task[]>;
@@ -93,7 +99,28 @@ export function totalHours(task: Task): number {
   return Object.keys(task.log ?? {}).reduce((sum, day) => sum + (hoursOn(task, day) ?? 0), 0);
 }
 
-/** Alle Aufgaben, die an `day` in der Liste stehen: am Starttag und, mit „Bis“, an jedem Tag bis dahin. */
+/** Alle Tage von `start` bis vor `end`, als `dateKey`s (die wählbaren Tage vor dem Fälligkeitstag). */
+export function daysBefore(start: string, end: string): string[] {
+  const days: string[] = [];
+  // Höchstens ein Jahr, damit ein kaputtes Datum nie zur Endlosschleife wird.
+  for (let d = fromDateKey(start), i = 0; dateKey(d) < end && i < 366; d = addDays(d, 1), i += 1) {
+    days.push(dateKey(d));
+  }
+  return days;
+}
+
+/** Gewählte Tage auf den Zeitraum zuschneiden; alle gewählt heißt „jeden Tag“ und wird nicht gespeichert. */
+export function normalizeOn(on: string[] | undefined, start: string, end: string): string[] | undefined {
+  if (!on || end <= start) return undefined;
+  const range = daysBefore(start, end);
+  const picked = range.filter((d) => on.includes(d));
+  return picked.length === range.length ? undefined : picked;
+}
+
+/**
+ * Alle Aufgaben, die an `day` in der Liste stehen: am Starttag und, mit „Bis“, an jedem Tag bis dahin
+ * (oder nur an den gewählten Tagen, der Fälligkeitstag immer).
+ */
 export function tasksOn(tasks: TaskMap, day: string): Occurrence[] {
   const found: Occurrence[] = [];
   // Früher begonnene zuerst, sie laufen schon. Innerhalb eines Starttags die gespeicherte Reihenfolge.
@@ -102,6 +129,7 @@ export function tasksOn(tasks: TaskMap, day: string): Occurrence[] {
     for (const task of tasks[start]) {
       const end = lastDay(task, start);
       if (day > end) continue;
+      if (Array.isArray(task.on) && day !== end && !task.on.includes(day)) continue;
       found.push({
         task,
         start,
@@ -167,13 +195,15 @@ export function useTasks() {
       if (details.due) task.due = details.due;
       if (details.link) task.link = details.link;
       if (details.tags?.length) task.tags = details.tags;
+      const on = normalizeOn(details.on, start, lastDay(task, start));
+      if (on) task.on = on;
       setTasks((prev) => ({ ...prev, [start]: [...(prev[start] ?? []), task] }));
     },
     [setTasks],
   );
 
   /**
-   * Ändert Beschreibung, „Bis“, Link oder Tags. Ein „Bis“ vor dem Starttag verlegt die Aufgabe dorthin
+   * Ändert Beschreibung, „Bis“, Tage, Link oder Tags. Ein „Bis“ vor dem Starttag verlegt die Aufgabe dorthin
    * (dann ist es ein einzelner Tag). Gibt den Starttag zurück, an dem sie danach liegt.
    */
   const update = useCallback(
@@ -188,6 +218,10 @@ export function useTasks() {
         if (!next.due) delete next.due;
         if (!next.link) delete next.link;
         if (!next.tags?.length) delete next.tags;
+        // Gewählte Tage passen sich an einen neuen Zeitraum an.
+        const on = normalizeOn(next.on, target, lastDay(next, target));
+        if (on) next.on = on;
+        else delete next.on;
         // Wechsel zwischen einem Tag und mehreren: der Haken des Starttags wandert mit.
         const wasRanged = lastDay(task, start) !== start;
         const isRanged = lastDay(next, target) !== target;

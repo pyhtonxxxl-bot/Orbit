@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useShell } from '../../lib/shell';
 import { useCanHover } from '../../lib/useLayout';
-import { colors } from '../../theme';
+import { useColors } from '../../lib/theme';
+import { themed } from '../../theme';
 import { Icon } from '../Icon';
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
  * Nur da, wenn die Seitenleiste nicht fest links steht (Handy, kleine Fenster).
  */
 export function PageHeader({ color, gutter }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const shell = useShell();
   const insets = useSafeAreaInsets();
   const canHover = useCanHover();
@@ -40,7 +43,7 @@ export function PageHeader({ color, gutter }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -58,4 +61,4 @@ const styles = StyleSheet.create({
   menuHovered: {
     backgroundColor: colors.hover,
   },
-});
+}));

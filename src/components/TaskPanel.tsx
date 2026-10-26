@@ -8,7 +8,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -20,19 +19,22 @@ import { useKeyboardInset } from '../lib/useKeyboardInset';
 import type { PanelState } from '../lib/useTaskPanel';
 import type { Tag } from '../lib/useTags';
 import {
+  daysBefore,
   formatHours,
   hoursOn,
   isDoneOn,
   lastDay,
+  normalizeOn,
   parseHours,
   totalHours,
   type Task,
   type TaskDetails,
 } from '../lib/useTasks';
 import { focusFirst, spaceToggles } from '../lib/web';
-import { colors, fonts } from '../theme';
+import { useColors } from '../lib/theme';
+import { fonts, themed } from '../theme';
 import { Checkbox } from './Checkbox';
-import { DatePicker } from './DatePicker';
+import { DatePicker, DaysPicker } from './DatePicker';
 import { Icon } from './Icon';
 
 type Props = {
@@ -64,6 +66,16 @@ function normalizeLink(raw: string): string {
   return /^[a-z][a-z0-9+.-]*:/i.test(link) ? link : `https://${link}`;
 }
 
+const SHORT_DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
+/** „Jeden Tag“ oder die gewählten Tage plus Fälligkeitstag kurz: „Mo · Mi · Fr“. */
+function daysSummary(on: string[] | undefined, end: string): string {
+  if (!on) return 'Jeden Tag';
+  const days = [...on, end];
+  if (days.length > 5) return `${days.length} Tage`;
+  return days.map((d) => SHORT_DAYS[fromDateKey(d).getDay()]).join(' · ');
+}
+
 /** `1.5` → `1,5`, für das Stundenfeld. */
 function hoursInput(hours: number | undefined): string {
   return hours ? String(hours).replace('.', ',') : '';
@@ -87,6 +99,8 @@ export function TaskPanel({
   onRemove,
   onEditTags,
 }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardInset();
   const isNew = state.mode === 'new';
@@ -95,7 +109,9 @@ export function TaskPanel({
   // Neue Aufgabe: alles bleibt im Entwurf, bis „Hinzufügen“. Bestehende: Fälligkeit und Tags gelten sofort.
   const [draftDue, setDraftDue] = useState<string | undefined>(undefined);
   const [draftTags, setDraftTags] = useState<string[]>([]);
+  const [draftOn, setDraftOn] = useState<string[] | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [daysOpen, setDaysOpen] = useState(false);
   // Browser: das Feld wächst mit dem Text (am Handy macht das die Plattform selbst).
   const [titleHeight, setTitleHeight] = useState(0);
   const panelRef = useRef<View>(null);
@@ -112,6 +128,8 @@ export function TaskPanel({
   const dayHours = task ? hoursOn(task, date) : undefined;
   const total = task ? totalHours(task) : 0;
   const [hoursText, setHoursText] = useState(hoursInput(dayHours));
+  // Mit „Bis“: an welchen Tagen davor sie in der Liste steht (nichts = jeden Tag).
+  const on = normalizeOn(isNew ? draftOn : task?.on, state.day, end);
   const dueHere = !!due && date === end && !done;
   const overdue = !!task && !!due && due < todayKey && !isDoneOn(task, state.day, end);
 
@@ -130,6 +148,12 @@ export function TaskPanel({
     if (isNew) setDraftDue(day);
     else onUpdate({ due: day });
   };
+  const toggleDay = (day: string) => {
+    const current = on ?? daysBefore(state.day, end);
+    const next = current.includes(day) ? current.filter((d) => d !== day) : [...current, day].sort();
+    if (isNew) setDraftOn(next);
+    else onUpdate({ on: next });
+  };
   const toggleTag = (id: string) => {
     const next = selectedTags.includes(id) ? selectedTags.filter((t) => t !== id) : [...selectedTags, id];
     if (isNew) setDraftTags(next);
@@ -138,7 +162,7 @@ export function TaskPanel({
   const create = () => {
     const trimmed = title.trim();
     if (!trimmed) return;
-    onCreate(state.day, { title: trimmed, due: draftDue, link: validLink || undefined, tags: draftTags });
+    onCreate(state.day, { title: trimmed, due: draftDue, link: validLink || undefined, tags: draftTags, on: draftOn });
     onClose();
   };
   const commitHours = () => {
@@ -291,8 +315,29 @@ export function TaskPanel({
               />
             </View>
           )}
-          {ranged && !calendarOpen && <Text style={styles.note}>Steht jeden Tag bis dahin in der Liste.</Text>}
         </Row>
+
+        {/* Mit „Bis“: im Mini-Kalender die Tage wählen, an denen sie in der Todo-Liste steht. */}
+        {ranged && (
+          <Row label="Tage">
+            <Pressable
+              onPress={() => setDaysOpen((open) => !open)}
+              role="button"
+              aria-expanded={daysOpen}
+              aria-label={`An welchen Tagen in der Liste: ${daysSummary(on, end)}, ändern`}
+              style={({ pressed }) => [styles.valueButton, pressed && styles.pressed]}
+            >
+              <Text style={styles.value}>{daysSummary(on, end)}</Text>
+            </Pressable>
+            {daysOpen ? (
+              <View style={styles.calendar}>
+                <DaysPicker start={state.day} end={end} days={on} todayKey={todayKey} onToggle={toggleDay} />
+              </View>
+            ) : (
+              <Text style={styles.note}>An diesen Tagen steht sie in der Liste, am letzten ist sie fällig.</Text>
+            )}
+          </Row>
+        )}
 
         {!isNew && (
           <Row label="Stunden">
@@ -454,6 +499,8 @@ export function TaskPanel({
 
 /** Eine Zeile der Aufzählung: Punkt, Name, Inhalt. */
 function Row({ label, children }: { label: string; children: ReactNode }) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   return (
     <View style={styles.row}>
       <View style={styles.rowHead}>
@@ -465,7 +512,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   // PC
   floating: {
     position: 'absolute',
@@ -480,7 +527,7 @@ const styles = StyleSheet.create({
   card: {
     maxHeight: '100%',
     borderRadius: 16,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.panel,
     shadowColor: colors.shadow,
     shadowOpacity: 0.16,
     shadowRadius: 24,
@@ -519,7 +566,7 @@ const styles = StyleSheet.create({
     maxHeight: '88%',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.panel,
   },
   handle: {
     alignSelf: 'center',
@@ -761,7 +808,7 @@ const styles = StyleSheet.create({
   primaryText: {
     fontFamily: fonts.semibold,
     fontSize: 15,
-    color: colors.white,
+    color: colors.inverse,
   },
   remove: {
     paddingVertical: 8,
@@ -776,4 +823,4 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.6,
   },
-});
+}));

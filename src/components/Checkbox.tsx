@@ -1,9 +1,12 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
-import { colors } from '../theme';
+import { useColors } from '../lib/theme';
+import { themed } from '../theme';
 
 /** `due`: Aufgabe mit Fälligkeit, der leere Rahmen ist dann orange. */
 export function Checkbox({ checked, due = false }: { checked: boolean; due?: boolean }) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   return (
     <View style={[styles.box, due && styles.boxDue, checked && styles.boxChecked]}>
       {checked && <Tick />}
@@ -13,6 +16,8 @@ export function Checkbox({ checked, due = false }: { checked: boolean; due?: boo
 
 /** Weißes Häkchen ohne Icon-Library: zwei Ränder einer gedrehten Box. `scale` für größere Flächen. */
 export function Tick({ scale = 1 }: { scale?: number }) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   return (
     <View
       style={[
@@ -29,7 +34,7 @@ export function Tick({ scale = 1 }: { scale?: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   box: {
     width: 22,
     height: 22,
@@ -56,4 +61,4 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
     transform: [{ rotate: '45deg' }],
   },
-});
+}));

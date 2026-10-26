@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '../components/Icon';
@@ -12,10 +12,13 @@ import { useCanHover, useLayout } from '../lib/useLayout';
 import { isDaily, useHabits, type Habit } from '../lib/useHabits';
 import { useTags, type Tag } from '../lib/useTags';
 import { heading, spaceToggles } from '../lib/web';
-import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, colors, fonts, space } from '../theme';
+import { useColors, useTheme } from '../lib/theme';
+import { COMPACT_MAX_WIDTH, CONTENT_MAX_WIDTH, fonts, space, themed } from '../theme';
 
-/** Einstellungen: Habits mit ihren Wochentagen, Tags für Aufgaben. */
+/** Einstellungen: Habits mit ihren Wochentagen, Tags für Aufgaben, helles oder dunkles Design. */
 export default function SettingsScreen() {
+  const { colors, theme, setTheme } = useTheme();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const { wide, gutter } = useLayout();
   const canHover = useCanHover();
@@ -104,7 +107,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Tags: links der Name des Abschnitts, rechts die Liste mit Punkten. */}
-        <View style={[styles.band, { backgroundColor: colors.days[2], paddingVertical: rowY + 6, paddingHorizontal: gutter }]}>
+        <View style={{ backgroundColor: colors.days[2], paddingVertical: rowY + 6, paddingHorizontal: gutter }}>
           <View style={[styles.inner, wide ? styles.innerWide : styles.innerCompact]}>
             <View style={wide ? styles.side : undefined}>
               <Text {...heading(2)} style={[styles.section, wide && styles.sectionWide]} maxFontSizeMultiplier={1.3}>
@@ -147,6 +150,42 @@ export default function SettingsScreen() {
             </View>
           </View>
         </View>
+
+        {/* Darstellung: hell oder Schwarz-Grau, gilt sofort für die ganze App. */}
+        <View style={[styles.band, { backgroundColor: colors.days[3], paddingVertical: rowY + 6, paddingHorizontal: gutter }]}>
+          <View style={[styles.inner, wide ? styles.innerWide : styles.innerCompact]}>
+            <View style={wide ? styles.side : undefined}>
+              <Text {...heading(2)} style={[styles.section, wide && styles.sectionWide]} maxFontSizeMultiplier={1.3}>
+                DARSTELLUNG
+              </Text>
+              <Text style={styles.hint}>Hell oder Schwarz-Grau.</Text>
+            </View>
+            <View style={[wide ? styles.bodyWide : styles.bodyCompact, styles.themes]} role="radiogroup" aria-label="Design">
+              {(
+                [
+                  ['light', 'Hell'],
+                  ['dark', 'Dunkel'],
+                ] as const
+              ).map(([value, label]) => {
+                const on = theme === value;
+                return (
+                  <Pressable
+                    key={value}
+                    onPress={() => setTheme(value)}
+                    {...spaceToggles(() => setTheme(value))}
+                    role="radio"
+                    aria-checked={on}
+                    aria-label={label}
+                    style={({ pressed }) => [styles.themeOption, pressed && styles.pressed]}
+                  >
+                    <View style={[styles.radio, on && styles.radioOn]} />
+                    <Text style={[styles.themeText, on && styles.themeTextOn]}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -165,6 +204,8 @@ type HabitRowProps = {
 
 /** Ein Habit: Punkt, Name zum Umbenennen, die sieben Wochentage zum An- und Abschalten, × zum Löschen. */
 function HabitRow({ habit, wide, canHover, onRename, onDays, onRemove }: HabitRowProps) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [name, setName] = useState(habit.title);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -267,6 +308,8 @@ type TagRowProps = {
 
 /** Ein Tag: Punkt, Name zum direkten Umbenennen, × zum Löschen. */
 function TagRow({ tag, canHover, onRename, onRemove }: TagRowProps) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [name, setName] = useState(tag.name);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -318,7 +361,7 @@ function TagRow({ tag, canHover, onRename, onRemove }: TagRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.footer,
@@ -395,6 +438,38 @@ const styles = StyleSheet.create({
   tagRowHovered: {
     backgroundColor: colors.hover,
   },
+  themes: {
+    flexDirection: 'row',
+    gap: 28,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 44,
+    cursor: 'pointer',
+  },
+  // Gewählt: voller Punkt, sonst nur ein Ring, wie bei den Tags im Aufgaben-Fenster.
+  radio: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.control,
+  },
+  radioOn: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  themeText: {
+    fontFamily: fonts.regular,
+    fontSize: 17,
+    color: colors.inkMuted,
+  },
+  themeTextOn: {
+    fontFamily: fonts.medium,
+    color: colors.ink,
+  },
   habitRow: {
     marginHorizontal: -8,
     paddingHorizontal: 8,
@@ -444,7 +519,7 @@ const styles = StyleSheet.create({
     userSelect: 'none',
   },
   weekdayTextOn: {
-    color: colors.white,
+    color: colors.inverse,
   },
   dot: {
     width: 6,
@@ -480,4 +555,4 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.6,
   },
-});
+}));

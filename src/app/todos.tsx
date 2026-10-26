@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { LayoutAnimation, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { LayoutAnimation, Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DayBand } from '../components/DayBand';
@@ -19,7 +19,8 @@ import { useTaskPanel } from '../lib/useTaskPanel';
 import { tasksOn, useTasks } from '../lib/useTasks';
 import { useWeekNav } from '../lib/useWeekNav';
 import { isDialogOpen } from '../lib/web';
-import { colors } from '../theme';
+import { useColors } from '../lib/theme';
+import { themed } from '../theme';
 
 const tap = () => Haptics.selectionAsync().catch(() => {});
 const animate = () => LayoutAnimation.configureNext(LayoutAnimation.create(220, 'easeInEaseOut', 'opacity'));
@@ -29,6 +30,8 @@ const TODAY = 'today';
 
 /** Todos: der Wochenplaner, sieben Tagesbänder von hell (Montag) nach dunkel (Sonntag). */
 export default function TodosScreen() {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const { wide, gutter } = useLayout();
   const canHover = useCanHover();
@@ -211,7 +214,7 @@ export default function TodosScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.footer,
@@ -243,4 +246,4 @@ const styles = StyleSheet.create({
     opacity: 0.94,
     pointerEvents: 'none',
   },
-});
+}));

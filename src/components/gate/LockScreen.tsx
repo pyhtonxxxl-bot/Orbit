@@ -4,7 +4,6 @@ import {
   Animated,
   Easing,
   Image,
-  StyleSheet,
   Text,
   View,
   useWindowDimensions,
@@ -12,7 +11,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCanHover } from '../../lib/useLayout';
-import { colors, fonts } from '../../theme';
+import { useColors } from '../../lib/theme';
+import { fonts, themed } from '../../theme';
 import { SlideToUnlock } from './SlideToUnlock';
 
 // Unscharfer Statuenkopf, erzeugt mit scripts/make-lock-image.py (gespiegelt, unten in `colors.lock` auslaufend).
@@ -38,6 +38,8 @@ const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(mi
 
 /** Sperrbildschirm: links der unscharfe Statuenkopf, rechts ORBIT. Entsperren per Wisch-Leiste oder Leertaste. */
 export function LockScreen({ entrance, onUnlock, onGone }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const canHover = useCanHover();
@@ -146,6 +148,8 @@ export function LockScreen({ entrance, onUnlock, onGone }: Props) {
           accessibilityIgnoresInvertColors
           aria-hidden
         />
+        {/* Dunkles Design: ein Schleier über Bild und Grund, ORBIT und Leiste liegen darüber. */}
+        <View style={styles.scrim} pointerEvents="none" />
 
         {portrait ? (
           <>
@@ -186,7 +190,7 @@ export function LockScreen({ entrance, onUnlock, onGone }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   // Weiß, solange das Bild noch einblendet.
   overlay: {
     position: 'absolute',
@@ -204,6 +208,14 @@ const styles = StyleSheet.create({
   },
   image: {
     position: 'absolute',
+  },
+  scrim: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: colors.lockScrim,
   },
   title: {
     fontFamily: fonts.heavy,
@@ -241,4 +253,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     color: colors.inkMuted,
   },
-});
+}));

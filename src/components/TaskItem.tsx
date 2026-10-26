@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { formatHours, type Occurrence } from '../lib/useTasks';
 import { spaceToggles } from '../lib/web';
-import { colors, fonts } from '../theme';
+import { useColors } from '../lib/theme';
+import { fonts, themed } from '../theme';
 import { Checkbox } from './Checkbox';
 
 type Props = {
@@ -22,6 +23,8 @@ type Props = {
  * Alles andere steht im Fenster.
  */
 export function TaskItem({ item, todayKey, canHover, selected = false, onToggle, onOpen }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   const { task, done, hours, dueHere, day } = item;
   const due = dueHere && !done;
@@ -66,7 +69,7 @@ export function TaskItem({ item, todayKey, canHover, selected = false, onToggle,
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -131,4 +134,4 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: colors.white,
   },
-});
+}));

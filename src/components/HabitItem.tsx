@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, Text } from 'react-native';
 
 import { streakText } from '../lib/useHabits';
 import { spaceToggles } from '../lib/web';
-import { colors, fonts } from '../theme';
+import { useColors } from '../lib/theme';
+import { fonts, themed } from '../theme';
 import { Checkbox } from './Checkbox';
 
 type Props = {
@@ -21,6 +22,8 @@ type Props = {
 
 /** Ein Habit als abhakbare Zeile, mit der Serie rechts. Sieht aus wie eine Aufgabe. */
 export function HabitItem({ title, checked, streak, daily = true, disabled = false, canHover, onToggle }: Props) {
+  const colors = useColors();
+  const styles = getStyles(colors);
   const [hovered, setHovered] = useState(false);
   const days = streakText(streak, false, daily);
   return (
@@ -48,7 +51,7 @@ export function HabitItem({ title, checked, streak, daily = true, disabled = fal
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = themed((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -86,4 +89,4 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.inkMuted,
   },
-});
+}));
