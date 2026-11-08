@@ -44,6 +44,13 @@ const light = {
   knobInk: '#333333',
 
   // Seitenleiste: eine Spur heller als Montag, damit sie wie ein eigenes Blatt wirkt.
+  // Health Zyklus: das Tagesrad. Ring = Spur, Nacht = Schlafbogen, Fenster = Essfenster (heller als das Band).
+  wheelTrack: 'rgba(0, 0, 0, 0.07)',
+  wheelNight: 'rgba(0, 0, 0, 0.26)',
+  wheelWindow: 'rgba(255, 255, 255, 0.6)',
+  // Fenster der Superkompensation in der Erholungskurve: Orange, ganz leicht.
+  accentSoft: 'rgba(228, 100, 43, 0.16)',
+
   sidebar: '#E9E9E9',
   sidebarLine: 'rgba(0, 0, 0, 0.07)',
   active: 'rgba(0, 0, 0, 0.07)',
@@ -83,6 +90,11 @@ const dark: Palette = {
   track: '#0E0E0E',
   pillTrack: 'rgba(255, 255, 255, 0.35)',
   knobInk: '#333333',
+
+  wheelTrack: 'rgba(255, 255, 255, 0.07)',
+  wheelNight: 'rgba(0, 0, 0, 0.5)',
+  wheelWindow: 'rgba(255, 255, 255, 0.14)',
+  accentSoft: 'rgba(228, 100, 43, 0.22)',
 
   sidebar: '#202020',
   sidebarLine: 'rgba(255, 255, 255, 0.08)',

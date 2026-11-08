@@ -9,7 +9,7 @@ import { useColors } from '../../lib/theme';
 import { fonts, themed } from '../../theme';
 import { Icon, type IconName } from '../Icon';
 
-type Href = '/' | '/habits' | '/todos' | '/einstellungen';
+type Href = '/' | '/habits' | '/todos' | '/zyklus' | '/einstellungen';
 type Item = { label: string; icon: IconName; href?: Href; soon?: boolean };
 
 // Startseite zuerst, dann die Werkzeuge. Was „bald“ ist, steht schon da, ist aber noch nicht klickbar.
@@ -17,6 +17,7 @@ const MAIN: Item[] = [{ label: 'Startseite', icon: 'home', href: '/' }];
 const TOOLS: Item[] = [
   { label: 'Habits', icon: 'habit', href: '/habits' },
   { label: 'Todos', icon: 'todo', href: '/todos' },
+  { label: 'Health Zyklus', icon: 'cycle', href: '/zyklus' },
   { label: 'Training', icon: 'training', soon: true },
   { label: 'Ernährung', icon: 'food', soon: true },
 ];
@@ -40,6 +41,8 @@ export function Sidebar({ onNavigate, onLock, onClose }: Props) {
     onNavigate?.();
     if (href !== pathname) router.navigate(href as Href);
   };
+  // Unterseiten (z. B. /zyklus/plan) markieren ihren Eintrag mit.
+  const isActive = (href?: Href) => !!href && (href === pathname || (href !== '/' && pathname.startsWith(`${href}/`)));
 
   return (
     // Scrollt, wenn der Platz knapp wird (Handy quer), damit „Sperren“ nie abgeschnitten ist.
@@ -62,7 +65,7 @@ export function Sidebar({ onNavigate, onLock, onClose }: Props) {
       <Text style={styles.section}>Werkzeuge</Text>
       <View style={styles.group}>
         {TOOLS.map((item) => (
-          <NavItem key={item.label} item={item} active={item.href === pathname} canHover={canHover} onPress={go} />
+          <NavItem key={item.label} item={item} active={isActive(item.href)} canHover={canHover} onPress={go} />
         ))}
       </View>
 
