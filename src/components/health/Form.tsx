@@ -160,7 +160,7 @@ type NumberFieldProps = {
   onChange: (value: number) => void;
 };
 
-/** Zahl eintippen. Unsinn oder außerhalb von min bis max springt beim Verlassen auf den alten Wert zurück. */
+/** Zahl eintippen. Gültiges zählt sofort, Unsinn oder außerhalb von min bis max springt beim Verlassen zurück. */
 export function NumberField({ label, value, unit, min, max, decimal = false, onChange }: NumberFieldProps) {
   const colors = useColors();
   const styles = getStyles(colors);
@@ -174,22 +174,26 @@ export function NumberField({ label, value, unit, min, max, decimal = false, onC
     if (!focused) setText(show(value));
   }
 
-  const commit = () => {
-    const parsed = Number.parseFloat(text.trim().replace(',', '.'));
-    if (!Number.isFinite(parsed) || parsed < min || parsed > max) {
-      setText(show(value));
-      return;
-    }
-    const clean = decimal ? Math.round(parsed * 10) / 10 : Math.round(parsed);
-    setText(show(clean));
-    if (clean !== value) onChange(clean);
+  /** Gültige Zahl aus dem Text, sonst nichts. */
+  const parse = (raw: string): number | null => {
+    const parsed = Number.parseFloat(raw.trim().replace(',', '.'));
+    if (!Number.isFinite(parsed) || parsed < min || parsed > max) return null;
+    return decimal ? Math.round(parsed * 10) / 10 : Math.round(parsed);
   };
+  // Gültiges sofort übernehmen: am Handy tippt man oft direkt auf „Speichern“, ohne das Feld zu verlassen.
+  const change = (raw: string) => {
+    setText(raw);
+    const clean = parse(raw);
+    if (clean !== null && clean !== value) onChange(clean);
+  };
+  // Beim Verlassen nur noch die Anzeige aufräumen, Unsinn springt auf den letzten gültigen Wert zurück.
+  const commit = () => setText(show(parse(text) ?? value));
 
   return (
     <View style={styles.numberRow}>
       <TextInput
         value={text}
-        onChangeText={setText}
+        onChangeText={change}
         onFocus={() => setFocused(true)}
         onBlur={() => {
           setFocused(false);

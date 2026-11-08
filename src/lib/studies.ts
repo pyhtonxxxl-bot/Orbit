@@ -170,7 +170,7 @@ export const SOURCES: Source[] = [
     year: 1990,
     title: "A new predictive equation for resting energy expenditure in healthy individuals",
     journal: "Am J Clin Nutr 51(2):241-247",
-    kind: "Befragung",
+    kind: "Studie mit Messungen",
     url: "https://doi.org/10.1093/ajcn/51.2.241",
   },
   {
@@ -237,6 +237,15 @@ export const SOURCES: Source[] = [
     url: "https://doi.org/10.1186/s12970-017-0177-8",
   },
   {
+    id: "helms2014",
+    authors: "Helms ER, Aragon AA, Fitschen PJ",
+    year: 2014,
+    title: "Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation",
+    journal: "J Int Soc Sports Nutr 11:20",
+    kind: "Übersichtsarbeit",
+    url: "https://doi.org/10.1186/1550-2783-11-20",
+  },
+  {
     id: "areta2013",
     authors: "Areta JL et al.",
     year: 2013,
@@ -280,15 +289,6 @@ export const SOURCES: Source[] = [
     journal: "Front Nutr 6:131",
     kind: "Übersichtsarbeit",
     url: "https://doi.org/10.3389/fnut.2019.00131",
-  },
-  {
-    id: "helms2014",
-    authors: "Helms ER, Aragon AA, Fitschen PJ",
-    year: 2014,
-    title: "Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation",
-    journal: "J Int Soc Sports Nutr 11:20",
-    kind: "Übersichtsarbeit",
-    url: "https://doi.org/10.1186/1550-2783-11-20",
   },
   {
     id: "schoenfeld2015",
@@ -467,7 +467,7 @@ export const SOURCES: Source[] = [
     year: 2015,
     title: "The Impact of Circadian Phenotype and Time since Awakening on Diurnal Performance in Athletes",
     journal: "Current Biology 25(4):518-522",
-    kind: "Studie",
+    kind: "Beobachtungsstudie",
     url: "https://doi.org/10.1016/j.cub.2014.12.036",
   },
   {
@@ -602,7 +602,7 @@ export const SECTIONS: Section[] = [
   {
     title: "ESSEN IM TAKT",
     hint: "Warum feste Essenszeiten?",
-    honest: { text: "Die Studien zur Regelmäßigkeit sind klein und kurz, sie sprechen dafür, beweisen es aber nicht. Ein großer Vorteil fürs Abnehmen durch ein großes Frühstück ließ sich unter strengen Bedingungen nicht wiederholen. Und feste Zeiten allein machen nicht schlank: In großen Studien zählte vor allem die Menge, ein Essfenster brachte kaum etwas extra.", sources: ["jakubowicz2013", "ruddickcollins2022", "lowe2020", "liu2022", "liuhy2024"] },
+    honest: { text: "Die Studien zur Regelmäßigkeit sind klein und kurz, sie sprechen dafür, beweisen es aber nicht. Fast alle liefen an Menschen mit Übergewicht; wie gut das für Schlanke und Sportliche gilt, ist offen. Ein großer Vorteil fürs Abnehmen durch ein großes Frühstück ließ sich unter strengen Bedingungen nicht wiederholen. Und feste Zeiten allein machen nicht schlank: In großen Studien zählte vor allem die Menge, ein Essfenster brachte kaum etwas extra.", sources: ["jakubowicz2013", "ruddickcollins2022", "lowe2020", "liu2022", "liuhy2024"] },
     points: [
       { text: "Mahlzeiten stellen die inneren Uhren mit. Als Forschende drei Mahlzeiten um fünf Stunden nach hinten schoben, wanderte auch der Blutzucker-Rhythmus um rund fünf Stunden mit.", sources: ["wehrens2017"] },
       { text: "Regelmäßig statt durcheinander: In zwei kleinen Studien aßen Frauen je zwei Wochen lang nach festem Plan und zwei Wochen unregelmäßig. Mit festem Plan stieg das Insulin nach dem Essen weniger an, das Cholesterin war niedriger, und sie aßen von selbst etwas weniger.", sources: ["farshchi2004", "farshchi2005"] },
@@ -622,9 +622,10 @@ export const SECTIONS: Section[] = [
       { text: "Der Tagesbedarf ist Grundumsatz mal Alltag: der PAL-Wert reicht von 1,4 (viel sitzen) bis 2,0 (körperlich schwer). Regelmäßiger Sport zählt etwas dazu.", sources: ["efsa2013energy", "dge_pal"] },
       { text: "Eiweiß: Erwachsene brauchen etwa 0,8 g pro kg Körpergewicht, ab 65 etwa 1,0 g.", sources: ["richter2019", "efsa2012protein"] },
       { text: "Wer Kraft trainiert, profitiert bis etwa 1,6 g pro kg. Darüber brachte mehr Eiweiß im Mittel kaum noch etwas.", sources: ["morton2018", "jager2017"] },
+      { text: "Wer trainiert und abnimmt, braucht eher mehr, damit die Muskeln bleiben. Orbit rechnet dann 2,0 g pro kg.", sources: ["jager2017", "helms2014"] },
       { text: "Über den Tag verteilt wirkt Eiweiß besser als abends auf einmal, zum Beispiel vier Portionen im Abstand von drei Stunden.", sources: ["areta2013", "mamerow2014", "schoenfeld2018"] },
       { text: "Zum Abnehmen rechnet Orbit etwa 500 kcal unter dem Bedarf, wie es eine US-Leitlinie vorschlägt. Als eigene Sicherheitsgrenze geht es nie unter den Grundumsatz und nie unter 1.200 (Frauen) bzw. 1.500 kcal (Männer), das untere Ende der Zielwerte dieser Leitlinie.", sources: ["jensen2014"] },
-      { text: "Zum Aufbauen ein kleines Plus von etwa 300 kcal. Wie groß es sein muss, ist offen, ein großes bringt vor allem Fett.", sources: ["slater2019", "helms2014"] },
+      { text: "Zum Aufbauen ein kleines Plus von etwa 300 kcal. Wie groß es sein muss, ist offen, ein großes bringt vor allem Fett.", sources: ["slater2019"] },
     ],
   },
   {
@@ -633,12 +634,12 @@ export const SECTIONS: Section[] = [
     curve: true,
     honest: { text: "Einen echten Multiplikator genau im Fenster hat keine Studie gemessen, die Kurve ist eine Vereinfachung, und Menschen reagieren verschieden. Zu früh trainieren schadet nicht automatisch, und zu spät kostet wenig: Kraft hält ohne Training etwa vier Wochen. Bei gleichem Wochenumfang ist ein- bis dreimal pro Woche fast gleich gut. Orbit zeigt Richtwerte, dein Körpergefühl geht vor.", sources: ["kiely2018", "bosquet2013", "mujika2000", "schoenfeld2019"] },
     points: [
-      { text: "Die Idee der Superkompensation: Nach dem Training sinkt die Leistung erst (Ermüdung), dann erholt sich der Körper und baut für eine Weile etwas über das alte Niveau hinaus auf. Trainierst du in diesem Fenster wieder, baust du auf dem Plus auf. Ursprünglich wurde das am Glykogen-Speicher der Muskeln gemessen.", sources: ["bergstrom1966"] },
+      { text: "Die Idee der Superkompensation: Nach dem Training sinkt die Leistung erst (Ermüdung), dann erholt sich der Körper und baut für eine Weile etwas über das alte Niveau hinaus auf. Nach diesem Modell baust du auf dem Plus auf, wenn du in diesem Fenster wieder trainierst. Ursprünglich wurde das am Glykogen-Speicher der Muskeln gemessen.", sources: ["bergstrom1966"] },
       { text: "Genauer ist das Fitness-Ermüdungs-Modell: Jede Einheit bringt Fitness und Ermüdung zugleich, die Ermüdung verschwindet nur schneller.", sources: ["calvert1976"] },
       { text: "Nach schwerem Krafttraining läuft der Muskelumbau etwa eineinhalb bis zwei Tage. Wer bis zum Muskelversagen trainiert, braucht deutlich länger, um wieder auf dem alten Stand zu sein.", sources: ["macdougall1995", "phillips1997", "morannavarro2017"] },
       { text: "Ausdauer: nach lockerem Training bis 24 Stunden, an der Schwelle 24 bis 48, nach harten Intervallen 48 und mehr.", sources: ["stanley2013"] },
       { text: "Jede große Muskelgruppe etwa zweimal pro Woche zu trainieren, ist eine gute Faustregel. Einsteiger beginnen mit zwei bis drei Trainingstagen.", sources: ["schoenfeld2016", "acsm2009"] },
-      { text: "Nach einer Nacht mit sechs Stunden Schlaf oder weniger ist die Leistung im Mittel um rund 8 % schlechter. Orbit plant dann mehr Erholung ein.", sources: ["craven2022"] },
+      { text: "Nach einer Nacht mit sechs Stunden Schlaf oder weniger ist die Leistung im Mittel um rund 8 % schlechter. Wer laut Plan so wenig schläft, bekommt bei Orbit vorsichtshalber mehr Erholung (Faustregel).", sources: ["craven2022"] },
       { text: "Mit dem Alter dauert die Erholung etwas länger, wohl weniger als oft gedacht. Orbit rechnet ab 50 und ab 65 vorsichtig etwas mehr ein.", sources: ["borges2016"] },
     ],
   },

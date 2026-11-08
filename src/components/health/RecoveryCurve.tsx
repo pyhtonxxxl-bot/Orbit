@@ -16,8 +16,8 @@ type Props = {
 };
 
 /**
- * Die Kurve der Superkompensation: nach dem Training erst unter dem alten Niveau (Ermüdung),
- * dann darüber (das beste Fenster für das nächste Training, orange hinterlegt), danach zurück.
+ * Die Kurve der Superkompensation als Modell: nach dem Training erst unter dem alten Niveau (Ermüdung),
+ * dann darüber (ein gutes Fenster für das nächste Training, orange hinterlegt), danach zurück.
  */
 export function RecoveryCurve({ recover, window, now, height = 120 }: Props) {
   const colors = useColors();
@@ -47,7 +47,7 @@ export function RecoveryCurve({ recover, window, now, height = 120 }: Props) {
       style={[styles.root, { height }]}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       role="img"
-      aria-label={`Erholungskurve: etwa ${Math.round(recover)} Stunden erholen, danach etwa ${Math.round(window)} Stunden das beste Fenster für das nächste Training.`}
+      aria-label={`Erholungskurve als Richtwert: etwa ${Math.round(recover)} Stunden erholen, danach etwa ${Math.round(window)} Stunden ein gutes Fenster für das nächste Training.`}
     >
       {width > 0 && (
         <>
@@ -67,7 +67,7 @@ export function RecoveryCurve({ recover, window, now, height = 120 }: Props) {
             Erholen
           </Text>
           <Text style={[styles.label, styles.labelAccent, { left: label(recover + window / 2), top: top + plot + 6 }]} numberOfLines={1}>
-            Bestes Fenster
+            Gutes Fenster
           </Text>
           <Text style={[styles.tag, { left: 0, top: base - 20 }]}>Training</Text>
         </>
@@ -90,8 +90,9 @@ const getStyles = themed((colors) => ({
     letterSpacing: 0.3,
     color: colors.inkMuted,
   },
+  // Auf den grauen Bändern reicht Orange als kleine Schrift nicht für guten Kontrast; das Feld darüber ist ja orange.
   labelAccent: {
-    color: colors.accentText,
+    color: colors.ink,
   },
   tag: {
     position: 'absolute',

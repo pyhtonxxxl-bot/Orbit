@@ -21,7 +21,7 @@ import { useTaskPanel } from '../lib/useTaskPanel';
 import { tasksOn, useTasks } from '../lib/useTasks';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
 import { useHealth } from '../lib/useHealth';
-import { ON_TIME, formatClock, mealNames, mealTimes, minutesOf } from '../lib/health';
+import { formatClock, mealNames, mealTimes, minutesOf, nextMeal } from '../lib/health';
 import { enterActivates, heading } from '../lib/web';
 import { useColors } from '../lib/theme';
 import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, fonts, space, themed } from '../theme';
@@ -84,12 +84,11 @@ export default function HomeScreen() {
   const cycleTimes = cycle.profile ? mealTimes(cycle.meals) : [];
   const cycleNames = mealNames(cycleTimes);
   const cycleEaten = cycle.eaten[todayKey] ?? {};
-  const nextMeal = cycleTimes.findIndex((t, i) => !cycleEaten[i] && minutesOf(now) < t + ON_TIME);
-  const cycleDescription = !cycle.profile
-    ? 'Essen und Training im Rhythmus · mit Studien'
-    : nextMeal >= 0
-      ? `${cycleNames[nextMeal]} um ${formatClock(cycleTimes[nextMeal])}`
-      : `Morgen ${cycleNames[0]} um ${formatClock(cycleTimes[0])}`;
+  const upcoming = nextMeal(cycleTimes, cycleTimes.map((_, i) => !!cycleEaten[i]), minutesOf(now));
+  const cycleDescription =
+    !cycle.profile || !upcoming
+      ? 'Essen und Training im Rhythmus · mit Studien'
+      : `${upcoming.today ? '' : 'Morgen '}${cycleNames[upcoming.index]} um ${formatClock(cycleTimes[upcoming.index])}`;
 
   return (
     <View style={styles.root}>

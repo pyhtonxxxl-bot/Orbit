@@ -29,6 +29,8 @@ import {
   mealTimes,
   performancePeak,
   personalNotes,
+  sentence,
+  showNumbers,
   recoveryFactor,
   recoveryReasons,
   sleepHours,
@@ -112,15 +114,21 @@ export default function CyclePlanScreen() {
   const reasons = recoveryReasons(profile);
   const advice = [...checkMeals(profile, meals), ...(days ? checkTraining(profile, meals, training) : [])];
   const notes = personalNotes(profile);
+  const numbers = showNumbers(profile);
 
   const contentWidth = shell?.contentWidth ?? 390;
   const wheelSize = wide
     ? Math.min(380, Math.floor((contentWidth - 2 * gutter - 48) * 0.57))
     : Math.min(360, contentWidth - 2 * gutter);
 
+  // Zurück dorthin, wo man herkam (Übersicht), statt eine zweite Übersicht in den Verlauf zu legen.
+  const leave = () => {
+    if (health.profile && router.canGoBack()) router.back();
+    else router.replace('/zyklus');
+  };
   const onSave = () => {
     save(profile, meals, training, dateKey(new Date()));
-    router.replace('/zyklus');
+    leave();
   };
 
   return (
@@ -131,7 +139,9 @@ export default function CyclePlanScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: keyboard }]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
-        scrollEnabled={!dragging}
+        // Am Handy steht die Seite still, solange am Rad gezogen wird. Im Browser regelt das touch-action am Griff,
+        // und die Scrollleiste soll beim Ziehen nicht verschwinden.
+        scrollEnabled={Platform.OS === 'web' || !dragging}
         showsVerticalScrollIndicator={Platform.OS === 'web'}
       >
         <Band
@@ -154,7 +164,7 @@ export default function CyclePlanScreen() {
                 { value: 'male', label: 'Männlich' },
               ]}
               value={profile.sex}
-              onChange={(sex) => setProfile({ sex })}
+              onChange={(sex) => setProfile(sex === 'male' ? { sex, pregnant: false } : { sex })}
             />
           </FormRow>
           <FormRow label="Alter">
@@ -228,7 +238,7 @@ export default function CyclePlanScreen() {
               onTraining={days ? (start) => setTraining({ start }) : undefined}
               onDragging={setDragging}
             >
-              <Text style={styles.centerBig}>{meals.count} Mahlzeiten</Text>
+              <Text style={[styles.centerBig, wheelSize < 300 && styles.centerBigSmall]}>{meals.count} Mahlzeiten</Text>
               <Text style={styles.centerSmall}>alle {formatDuration(meals.interval)}</Text>
             </CycleWheel>
           </View>
@@ -275,9 +285,11 @@ export default function CyclePlanScreen() {
           {differs && (
             <View style={styles.suggest}>
               <Text style={styles.small}>
-                Vorschlag aus den Studien: {suggestion.meals.count} Mahlzeiten ab {formatClock(suggestion.meals.first)}, alle{' '}
-                {formatDuration(suggestion.meals.interval)}
-                {days ? `, Training ab ${formatClock(suggestion.training.start)}` : ''}.
+                {sentence(
+                  `Orbits Vorschlag (Faustregel): ${suggestion.meals.count} Mahlzeiten ab ${formatClock(suggestion.meals.first)}, alle ${formatDuration(
+                    suggestion.meals.interval,
+                  )}${days ? `, Training ab ${formatClock(suggestion.training.start)}` : ''}`,
+                )}
               </Text>
               <PillButton label="Vorschlag übernehmen" quiet onPress={() => setDraft((d) => withSuggestion({ ...d!, auto: true }))} />
             </View>
@@ -307,7 +319,7 @@ export default function CyclePlanScreen() {
           )}
           <Toggle
             label="Keine Kalorien zeigen"
-            hint="Zum Beispiel, wenn Zählen dir nicht guttut. Dann geht es nur um den Rhythmus."
+            hint="Zum Beispiel, wenn Zählen dir nicht guttut oder du eine Essstörung hattest. Dann geht es nur um den Rhythmus."
             value={profile.hideNumbers}
             onChange={(hideNumbers) => setProfile({ hideNumbers })}
           />
@@ -329,8 +341,8 @@ export default function CyclePlanScreen() {
           gutter={gutter}
           grow
         >
-          {profile.hideNumbers ? (
-            <Text style={styles.body}>Kalorien sind ausgeblendet. Iss die größeren Mahlzeiten eher früh am Tag und die kleinste am Abend.</Text>
+          {!numbers ? (
+            <Text style={styles.body}>Ohne Kalorien-Zahlen. Iss die größeren Mahlzeiten eher früh am Tag und die kleinste am Abend.</Text>
           ) : (
             <>
               <Fact
@@ -350,7 +362,7 @@ export default function CyclePlanScreen() {
               <View key={i} style={styles.mealRow}>
                 <Text style={styles.mealTime}>{formatClock(time)}</Text>
                 <Text style={styles.mealName}>{names[i]}</Text>
-                {!profile.hideNumbers && (
+                {numbers && (
                   <Text style={styles.mealAmount}>
                     {formatNumber(Math.round((t.energy * shares[i]) / 10) * 10)} kcal · {Math.round(t.protein * shares[i])} g Eiweiß
                   </Text>
@@ -371,7 +383,7 @@ export default function CyclePlanScreen() {
           {notes.length > 0 && <AdviceList items={notes} />}
           <View style={styles.saveRow}>
             <PillButton label="Plan speichern" onPress={onSave} />
-            {health.profile && <PillButton label="Abbrechen" quiet onPress={() => router.replace('/zyklus')} />}
+            {health.profile && <PillButton label="Abbrechen" quiet onPress={leave} />}
           </View>
         </Band>
       </ScrollView>
@@ -458,6 +470,9 @@ const getStyles = themed((colors) => ({
   },
   wheelWrap: {
     alignItems: 'center',
+  },
+  centerBigSmall: {
+    fontSize: 14,
   },
   centerBig: {
     fontFamily: fonts.heavy,

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 
 import {
+  ACTIVITY_LEVELS,
   DEFAULT_PROFILE,
   INTENSITIES,
   MEAL_COUNT,
@@ -65,6 +66,7 @@ function parseProfile(raw: unknown): Profile | null {
   if (!['halten', 'abnehmen', 'aufbauen'].includes(p.goal)) p.goal = 'halten';
   if (!['frueh', 'normal', 'spaet'].includes(p.chronotype)) p.chronotype = 'normal';
   if (!['neu', 'mittel', 'erfahren'].includes(p.experience)) p.experience = 'mittel';
+  p.activity = clamp(Math.round(p.activity), 0, ACTIVITY_LEVELS.length - 1);
   p.wake = mod(p.wake);
   p.sleep = mod(p.sleep);
   return p;
@@ -137,10 +139,19 @@ export function useHealth() {
 
   const confirmIntro = useCallback(() => setValue((h) => ({ ...h, introSeen: true })), [setValue]);
 
-  /** Profil und Plan speichern. Ab heute zählt der Rhythmus, wenn er nicht schon läuft. */
+  /**
+   * Profil und Plan speichern. Der Rhythmus zählt ab heute, wenn er noch nicht läuft oder sich die Zahl der
+   * Mahlzeiten ändert (sonst würde der neue Plan die letzten Tage rückwirkend umbewerten).
+   */
   const save = useCallback(
     (profile: Profile, meals: MealPlan, training: TrainingPlan, today: string) =>
-      setValue((h) => ({ ...h, profile, meals, training, since: h.since ?? today })),
+      setValue((h) => ({
+        ...h,
+        profile,
+        meals,
+        training,
+        since: h.since && h.profile && h.meals.count === meals.count ? h.since : today,
+      })),
     [setValue],
   );
 
@@ -173,7 +184,10 @@ export function useHealth() {
     (session: Omit<Session, 'id'>) =>
       setValue((h) => {
         const cutoff = Date.now() - KEEP_SESSIONS_MS;
-        const sessions = [...h.sessions.filter((s) => s.at >= cutoff), { ...session, id: newId() }];
+        // Gleiche Reihenfolge der Felder wie beim Einlesen, sonst sähe das Laden einen Unterschied und legte jedes Mal
+        // eine Sicherungskopie an (siehe useStoredState).
+        const entry: Session = { id: newId(), at: session.at, groups: session.groups, intensity: session.intensity };
+        const sessions = [...h.sessions.filter((s) => s.at >= cutoff), entry];
         return { ...h, sessions: sessions.sort((a, b) => a.at - b.at) };
       }),
     [setValue],

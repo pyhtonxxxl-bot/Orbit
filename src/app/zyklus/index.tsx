@@ -29,7 +29,11 @@ import {
   mealTimes,
   minutesOf,
   onTime,
+  nextMeal,
   personalNotes,
+  sentence,
+  showNumbers,
+  formatDay,
   recoveryFactor,
   recoveryOf,
   recoveryTimes,
@@ -43,6 +47,7 @@ import { useShell } from '../../lib/shell';
 import { useColors } from '../../lib/theme';
 import { useHealth } from '../../lib/useHealth';
 import { useCanHover, useLayout } from '../../lib/useLayout';
+import { spaceToggles } from '../../lib/web';
 import { useNow } from '../../lib/useNow';
 import { fonts, themed } from '../../theme';
 
@@ -86,17 +91,20 @@ export default function CycleScreen() {
   const last7 = Array.from({ length: 7 }, (_, i) => dateKey(addDays(now, -i)));
   const score = rhythmScore(health.eaten, last7, meals, health.since ?? todayKey, nowMin);
   const notes = personalNotes(profile);
+  const numbers = showNumbers(profile);
 
-  // Was als Nächstes kommt: die erste offene Mahlzeit, die noch nicht lange vorbei ist.
-  const nextIndex = times.findIndex((time, i) => !eaten[i] && nowMin < time + ON_TIME);
-  const next =
-    nextIndex >= 0
-      ? times[nextIndex] > nowMin
-        ? `${names[nextIndex]} um ${formatClock(times[nextIndex])}, in ${formatDuration(times[nextIndex] - nowMin)}.`
-        : `${names[nextIndex]} ist jetzt dran (${formatClock(times[nextIndex])}).`
-      : eaten.every(Boolean)
-        ? `Für heute ist alles gegessen. Morgen geht es um ${formatClock(times[0])} weiter.`
-        : `Für heute steht keine Mahlzeit mehr an. Morgen geht es um ${formatClock(times[0])} weiter.`;
+  // Was als Nächstes kommt, nach Uhrzeit (auch bei Plänen über Mitternacht).
+  const upcoming = nextMeal(times, eaten, nowMin);
+  const nextIndex = upcoming?.today ? upcoming.index : -1;
+  const next = !upcoming
+    ? ''
+    : upcoming.today || upcoming.inMinutes < 6 * 60
+      ? upcoming.inMinutes > 0
+        ? sentence(`${names[upcoming.index]} um ${formatClock(times[upcoming.index])}, in ${formatDuration(upcoming.inMinutes)}`)
+        : `${names[upcoming.index]} ist jetzt dran (${formatClock(times[upcoming.index])}).`
+      : `${eaten.every(Boolean) ? 'Für heute ist alles gegessen.' : 'Für heute steht keine Mahlzeit mehr an.'} Morgen geht es um ${formatClock(
+          times[upcoming.index],
+        )} weiter.`;
 
   const contentWidth = shell?.contentWidth ?? 390;
   const wheelSize = wide
@@ -139,7 +147,7 @@ export default function CycleScreen() {
             trainsToday
               ? `Training ${formatClock(training.start)}–${formatClock(training.start + training.duration)}.`
               : nextTraining
-                ? `Heute kein Training. Nächstes: ${formatWhen(nextTraining.setHours(0, 0, 0, 0) + training.start * 60_000, nowMs)}.`
+                ? `Heute kein Training. Nächstes: ${formatWhen(nextTraining.setHours(0, training.start, 0, 0), nowMs)}.`
                 : 'Kein Training geplant.'
           }
           color={colors.days[1]}
@@ -156,7 +164,7 @@ export default function CycleScreen() {
               training={trainsToday ? training : null}
               now={nowMin}
             >
-              <Text style={styles.centerBig}>{formatClock(nowMin)}</Text>
+              <Text style={[styles.centerBig, wheelSize < 300 && styles.centerBigSmall]}>{formatClock(nowMin)}</Text>
               <Text style={styles.centerSmall}>
                 {eaten.filter(Boolean).length} von {times.length} gegessen
               </Text>
@@ -167,7 +175,7 @@ export default function CycleScreen() {
         <Band
           title="ESSEN"
           hint={
-            profile.hideNumbers
+            !numbers
               ? 'Regelmäßig, zu festen Zeiten. Abhaken, wenn du gegessen hast.'
               : `Heute etwa ${formatNumber(t.energy)} kcal und ${formatNumber(t.protein)} g Eiweiß.`
           }
@@ -181,32 +189,26 @@ export default function CycleScreen() {
             const late = !!entry && !onTime(entry);
             return (
               <View key={i}>
-                <Pressable
-                  onPress={() => {
+                <MealRow
+                  title={`${formatClock(time)} ${names[i]}`}
+                  label={`${names[i]} um ${formatClock(time)}${entry ? `, gegessen um ${formatClock(entry.at)}` : ''}`}
+                  meta={
+                    entry
+                      ? `Gegessen um ${formatClock(entry.at)}${late ? '' : ', pünktlich'}`
+                      : !numbers
+                        ? shares[i] > 1 / times.length
+                          ? 'eher größer'
+                          : 'eher kleiner'
+                        : `etwa ${formatNumber(Math.round((t.energy * shares[i]) / 10) * 10)} kcal · ${Math.round(t.protein * shares[i])} g Eiweiß`
+                  }
+                  checked={!!entry}
+                  due={i === nextIndex && !entry && nowMin >= time - 15}
+                  canHover={canHover}
+                  onToggle={() => {
                     tap();
                     toggleMeal(todayKey, i, time, nowMin);
                   }}
-                  role="checkbox"
-                  aria-checked={!!entry}
-                  aria-label={`${names[i]} um ${formatClock(time)}${entry ? `, gegessen um ${formatClock(entry.at)}` : ''}`}
-                  style={({ pressed }) => [styles.meal, pressed && styles.pressed]}
-                >
-                  <Checkbox checked={!!entry} due={i === nextIndex && !entry && nowMin >= time - 15} />
-                  <View style={styles.mealText}>
-                    <Text style={[styles.mealName, !!entry && styles.mealDone]}>
-                      {formatClock(time)} {names[i]}
-                    </Text>
-                    <Text style={styles.mealMeta}>
-                      {entry
-                        ? `Gegessen um ${formatClock(entry.at)}${late ? '' : ', pünktlich'}`
-                        : profile.hideNumbers
-                          ? shares[i] > 1 / times.length
-                            ? 'eher größer'
-                            : 'eher kleiner'
-                          : `etwa ${formatNumber(Math.round((t.energy * shares[i]) / 10) * 10)} kcal · ${Math.round(t.protein * shares[i])} g Eiweiß`}
-                    </Text>
-                  </View>
-                </Pressable>
+                />
                 {late && (
                   <View style={styles.fix}>
                     <PillButton label={`War doch um ${formatClock(time)}`} quiet onPress={() => setMealTime(todayKey, i, time)} />
@@ -222,7 +224,7 @@ export default function CycleScreen() {
           title="TRAINING"
           hint={
             ready.length
-              ? `Im besten Fenster: ${ready.map((r) => r.label).join(', ')}.`
+              ? `Gut für die nächste Einheit: ${ready.map((r) => r.label).join(', ')}.`
               : resting.length
                 ? `Noch in Erholung: ${resting.map((r) => r.label).join(', ')}.`
                 : 'Trag dein Training ein, dann zeigt Orbit, wann jede Muskelgruppe wieder dran ist.'
@@ -312,6 +314,40 @@ export default function CycleScreen() {
   );
 }
 
+type MealRowProps = {
+  title: string;
+  label: string;
+  meta: string;
+  checked: boolean;
+  due: boolean;
+  canHover: boolean;
+  onToggle: () => void;
+};
+
+/** Eine Mahlzeit zum Abhaken, wie ein Habit: Kästchen, Uhrzeit und Name, darunter Menge oder wann gegessen. */
+function MealRow({ title, label, meta, checked, due, canHover, onToggle }: MealRowProps) {
+  const styles = getStyles(useColors());
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Pressable
+      onPress={onToggle}
+      {...spaceToggles(onToggle)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={label}
+      style={({ pressed }) => [styles.meal, canHover && hovered && styles.mealHovered, pressed && styles.pressed]}
+    >
+      <Checkbox checked={checked} due={due} />
+      <View style={styles.mealText}>
+        <Text style={[styles.mealName, checked && styles.mealDone]}>{title}</Text>
+        <Text style={styles.mealMeta}>{meta}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 /** Pünktlichkeit der letzten 7 Tage als dünner Balken. */
 function Rhythm({ score }: { score: { planned: number; eaten: number; punctual: number } }) {
   const styles = getStyles(useColors());
@@ -339,7 +375,7 @@ type GroupRowProps = {
   onPress: () => void;
 };
 
-/** Eine Muskelgruppe: Punkt (orange = jetzt ideal, Ring = noch erholen) und wie lange noch. */
+/** Eine Muskelgruppe: Punkt (orange = gutes Fenster, Ring = noch erholen) und wie lange noch. Richtwerte. */
 function GroupRow({ label, state, now, selected, canHover, onPress }: GroupRowProps) {
   const styles = getStyles(useColors());
   const [hovered, setHovered] = useState(false);
@@ -349,8 +385,10 @@ function GroupRow({ label, state, now, selected, canHover, onPress }: GroupRowPr
       : state.phase === 'erholung'
         ? `Erholt sich, noch ${formatRemaining(state.recoveredAt! - now)}`
         : state.phase === 'fenster'
-          ? `Jetzt ideal, bis ${formatWhen(state.windowEnd!, now)}`
-          : 'Bereit';
+          ? `Gut für die nächste Einheit, etwa bis ${formatDay(state.windowEnd!, now)}`
+          : now - state.session!.at > 7 * 24 * HOUR_MS
+            ? 'Länger her, wieder einplanen'
+            : 'Bereit';
   return (
     <Pressable
       onPress={onPress}
@@ -359,9 +397,10 @@ function GroupRow({ label, state, now, selected, canHover, onPress }: GroupRowPr
       disabled={!state.session}
       role="button"
       aria-label={`${label}: ${status}`}
-      aria-selected={selected}
+      aria-pressed={selected}
       style={({ pressed }) => [
         styles.group,
+        !state.session && styles.groupStatic,
         canHover && hovered && !!state.session && styles.groupHovered,
         selected && styles.groupSelected,
         pressed && styles.pressed,
@@ -438,6 +477,9 @@ const getStyles = themed((colors) => ({
   wheelWrap: {
     alignItems: 'center',
   },
+  centerBigSmall: {
+    fontSize: 20,
+  },
   centerBig: {
     fontFamily: fonts.heavy,
     fontSize: 30,
@@ -470,6 +512,9 @@ const getStyles = themed((colors) => ({
   },
   pressed: {
     opacity: 0.6,
+  },
+  mealHovered: {
+    backgroundColor: colors.hover,
   },
   mealText: {
     flex: 1,
@@ -534,6 +579,9 @@ const getStyles = themed((colors) => ({
     paddingHorizontal: 8,
     borderRadius: 8,
     cursor: 'pointer',
+  },
+  groupStatic: {
+    cursor: 'auto',
   },
   groupHovered: {
     backgroundColor: colors.hover,

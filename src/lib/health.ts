@@ -150,18 +150,36 @@ export function restingEnergy(p: Pick<Profile, 'sex' | 'age' | 'height' | 'weigh
   return 10 * p.weight + 6.25 * p.height - 5 * p.age + (p.sex === 'male' ? 5 : -161);
 }
 
-/** PAL aus Alltag plus Sport: 4 bis 5 Mal pro Woche 30 bis 60 Minuten zählt etwa +0,3, 2 bis 3 Mal die Hälfte [dge_pal]. */
+/** PAL aus Alltag plus Sport: 4 bis 5 Mal pro Woche 30 bis 60 Minuten zählt etwa +0,3 [dge_pal], 2 bis 3 Mal die Hälfte (Faustregel). */
 export function palOf(p: Pick<Profile, 'activity'>, trainingDays: number): number {
   const base = ACTIVITY_LEVELS[Math.min(ACTIVITY_LEVELS.length - 1, Math.max(0, p.activity))].pal;
   const sport = trainingDays >= 4 ? 0.3 : trainingDays >= 2 ? 0.15 : 0;
-  return Math.min(2.4, base + sport);
+  return Math.round(Math.min(2.4, base + sport) * 100) / 100;
 }
 
-/** Warum ein Ziel nicht gerechnet wird (Jugendliche, Schwangerschaft, Essstörung): dann wird „halten“ daraus. */
+/** Schwangerschaft zählt nur beim weiblichen Körper (der Haken kann nach einem Wechsel noch gespeichert sein). */
+export function isPregnant(p: Pick<Profile, 'sex' | 'pregnant'>): boolean {
+  return p.sex === 'female' && p.pregnant;
+}
+
+export function bmi(p: Pick<Profile, 'weight' | 'height'>): number {
+  return p.weight / (p.height / 100) ** 2;
+}
+
+/**
+ * Kalorien und Eiweiß in Zahlen zeigen? Nicht, wenn jemand sie ausgeblendet hat, unter 18 (die Formel ist für
+ * Erwachsene) und in Schwangerschaft und Stillzeit (der Bedarf ist dann anders) [golden2016, iom2009].
+ */
+export function showNumbers(p: Profile): boolean {
+  return !p.hideNumbers && p.age >= 18 && !isPregnant(p);
+}
+
+/** Warum ein Ziel nicht gerechnet wird (Jugendliche, Schwangerschaft, Untergewicht, Essstörung): dann wird „halten“ daraus. */
 export function goalBlocked(p: Profile): string | null {
   if (p.goal === 'halten') return null;
   if (p.age < 18) return 'Unter 18 rechnet Orbit kein Abnehmen oder Zunehmen: dein Körper wächst noch. Sprich das mit deiner Ärztin oder deinem Arzt ab.';
-  if (p.pregnant) return 'In Schwangerschaft und Stillzeit rechnet Orbit kein Defizit oder Plus. Der Bedarf ist anders, das klärt deine Hebamme oder Ärztin.';
+  if (isPregnant(p)) return 'In Schwangerschaft und Stillzeit rechnet Orbit kein Defizit oder Plus. Der Bedarf ist anders, das klärt deine Hebamme oder Ärztin.';
+  if (p.goal === 'abnehmen' && bmi(p) < 18.5) return 'Bei deinem Gewicht rechnet Orbit kein Abnehmen. Sprich das mit deiner Ärztin oder deinem Arzt ab.';
   if (p.hideNumbers && p.goal === 'abnehmen') return 'Ohne Kalorien-Zahlen rechnet Orbit auch kein Defizit.';
   return null;
 }
@@ -489,8 +507,9 @@ const RECOVERY_HOURS: Record<'kraft' | 'ausdauer', Record<Intensity, number>> = 
 const WINDOW_HOURS: Record<Intensity, number> = { 1: 24, 2: 36, 3: 48 };
 
 /**
- * Persönlicher Faktor, vorsichtig geschätzt: ab 50 und ab 65 etwas länger [borges2016], nach Nächten mit 6 Stunden
- * oder weniger deutlich länger [craven2022], am Anfang länger, mit Erfahrung etwas kürzer [phillips1997, acsm2009].
+ * Persönlicher Faktor, vorsichtig geschätzt: ab 50 und ab 65 etwas länger [borges2016], wer laut Plan 6 Stunden oder
+ * weniger schläft, deutlich länger [craven2022], am Anfang länger [phillips1997]. Dass Erfahrene etwas schneller
+ * erholt sind, ist eine Faustregel der App.
  */
 export function recoveryFactor(p: Pick<Profile, 'age' | 'sleep' | 'wake' | 'experience'>): number {
   const age = p.age >= 65 ? 1.3 : p.age >= 50 ? 1.15 : 1;
@@ -559,17 +578,52 @@ export function formatRemaining(ms: number): string {
 
 const WEEKDAY_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
+/** `heute`, `morgen`, `Do` */
+export function formatDay(ms: number, now: number): string {
+  const date = new Date(ms);
+  const today = new Date(now);
+  const days = Math.round(
+    (new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() -
+      new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) /
+      (24 * H),
+  );
+  if (days === 0) return 'heute';
+  if (days === 1) return 'morgen';
+  return WEEKDAY_SHORT[date.getDay()];
+}
+
 /** `heute 18:00`, `morgen 09:00`, `Do 18:00` */
 export function formatWhen(ms: number, now: number): string {
   const date = new Date(ms);
   const today = new Date(now);
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const days = Math.floor((ms - startOfToday) / (24 * H));
+  // Über Kalendertage rechnen, damit die Zeitumstellung nichts verschiebt.
+  const days = Math.round((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - startOfToday) / (24 * H));
   const clock = formatClock(minutesOf(date));
   if (days === 0) return `heute ${clock}`;
   if (days === 1) return `morgen ${clock}`;
   if (days === -1) return `gestern ${clock}`;
   return `${WEEKDAY_SHORT[date.getDay()]} ${clock}`;
+}
+
+/**
+ * Die nächste offene Mahlzeit: heute die früheste, die noch nicht lange vorbei ist, sonst die früheste morgen.
+ * Nach Uhrzeit, nicht nach Reihenfolge im Plan, damit Pläne über Mitternacht (Schicht) stimmen.
+ */
+export function nextMeal(times: number[], eaten: boolean[], nowMinutes: number): { index: number; inMinutes: number; today: boolean } | null {
+  if (!times.length) return null;
+  let best = -1;
+  times.forEach((t, i) => {
+    if (!eaten[i] && nowMinutes < t + ON_TIME && (best < 0 || t < times[best])) best = i;
+  });
+  if (best >= 0) return { index: best, inMinutes: times[best] - nowMinutes, today: true };
+  const first = times.reduce((min, t, i) => (t < times[min] ? i : min), 0);
+  return { index: first, inMinutes: DAY - nowMinutes + times[first], today: false };
+}
+
+/** Hängt einen Punkt an, außer der Satz endet schon auf einen (z. B. „Std.“). */
+export function sentence(text: string): string {
+  return text.endsWith('.') ? text : `${text}.`;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -580,7 +634,7 @@ export type MealEntry = { planned: number; at: number };
 /** Pro Tag (`dateKey`) und Mahlzeit (Index im Plan). */
 export type MealLog = Record<string, Record<string, MealEntry>>;
 
-/** So viel Abweichung gilt noch als pünktlich (Minuten) [farshchi2005, gillpanda2015]. */
+/** So viel Abweichung gilt noch als pünktlich (Minuten). Faustregel der App: ±1 Std. */
 export const ON_TIME = 60;
 
 export function onTime(entry: MealEntry): boolean {
@@ -602,8 +656,10 @@ export function rhythmScore(log: MealLog, days: string[], plan: MealPlan, since:
     const entries = log[day] ?? {};
     times.forEach((t, index) => {
       const entry = entries[String(index)];
-      // Heute zählt eine Mahlzeit erst, wenn sie vorbei ist oder schon abgehakt.
+      // Heute zählt eine Mahlzeit erst, wenn sie vorbei ist oder schon abgehakt. Am ersten Tag des Plans nur, was
+      // abgehakt ist: was vor dem Einrichten lag, war nicht verpasst.
       if (i === 0 && !entry && nowMinutes < t + ON_TIME) return;
+      if (day === since && !entry) return;
       planned += 1;
       if (entry) {
         eaten += 1;
@@ -652,19 +708,22 @@ export function personalNotes(p: Profile): Advice[] {
     out.push({
       level: 'info',
       text: p.medicationWithFood
-        ? 'Gehört ein Medikament zum Essen, nimm es immer zur selben Mahlzeit. So passen Rhythmus und Einnahme zusammen. Die Uhrzeit selbst bestimmen Ärztin oder Apotheke, nicht Orbit.'
+        ? 'Nimm Medikamente, die zum Essen gehören, so ein, wie es auf dem Rezept oder im Beipackzettel steht. Willst du dafür Mahlzeiten verschieben, kläre das vorher mit Ärztin oder Apotheke.'
         : 'Nimm deine Medikamente so, wie es mit Ärztin oder Apotheke besprochen ist. Orbit verschiebt daran nichts.',
       sources: [],
     });
   }
-  if (p.pregnant) {
-    out.push({ level: 'info', text: 'In Schwangerschaft und Stillzeit ist der Bedarf höher und anders verteilt. Orbit rechnet deshalb kein Defizit, und die Zahlen sind nur eine grobe Orientierung.', sources: ['efsa2012protein', 'iom2009'] });
+  if (isPregnant(p)) {
+    out.push({ level: 'info', text: 'In Schwangerschaft und Stillzeit ist der Bedarf höher und anders verteilt. Orbit zeigt deshalb keine Kalorien und rechnet kein Defizit, es geht nur um den Rhythmus. Wie viel du brauchst, klärst du mit Hebamme oder Ärztin.', sources: ['efsa2012protein', 'iom2009'] });
+  }
+  if (p.age < 18 && p.goal === 'halten') {
+    out.push({ level: 'info', text: 'Unter 18 zeigt Orbit keine Kalorien: die Formel ist für Erwachsene, und dein Körper wächst noch. Regelmäßig essen und keine Mahlzeiten auslassen ist das Wichtigste.', sources: ['golden2016'] });
   }
   if (p.shiftWork) {
     out.push({
       level: 'info',
-      text: 'Bei Schichtarbeit: richte das Rad nach deiner häufigsten Schicht und halte die Abstände gleich, auch wenn sich die Uhrzeiten verschieben. Nachts lieber leicht essen.',
-      sources: ['gillpanda2015'],
+      text: 'Bei Schichtarbeit: richte das Rad nach deiner häufigsten Schicht und halte die Abstände gleich, auch wenn sich die Uhrzeiten verschieben (Faustregel). Bei Beschwerden sprich mit deiner Ärztin oder deinem Arzt.',
+      sources: [],
     });
   }
   if (p.lateCaffeine) {

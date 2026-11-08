@@ -11,11 +11,11 @@ import { fonts, themed, type Palette } from '../../theme';
 const HIT = 44;
 const STEP = 15;
 
-// Nur im Browser (React Native kennt diese Stile nicht): Ziehen auf dem Rad scrollt die Seite nicht,
-// die Hand zeigt, dass man greifen kann, und statt des Browser-Fokusrahmens zeigt ein eigener Ring den Fokus.
+// Nur im Browser (React Native kennt diese Stile nicht): Ziehen an einem Griff scrollt die Seite nicht (der Rest des
+// Rads aber schon), die Hand zeigt, dass man greifen kann, und statt des Fokusrahmens zeigt ein eigener Ring den Fokus.
 const isWeb = Platform.OS === 'web';
-const WEB_WHEEL = (isWeb ? { touchAction: 'none', userSelect: 'none' } : {}) as ViewStyle;
-const WEB_HANDLE = (isWeb ? { cursor: 'grab', outlineStyle: 'none' } : {}) as ViewStyle;
+const WEB_WHEEL = (isWeb ? { userSelect: 'none' } : {}) as ViewStyle;
+const WEB_HANDLE = (isWeb ? { cursor: 'grab', outlineStyle: 'none', touchAction: 'none' } : {}) as ViewStyle;
 
 type Props = {
   size: number;

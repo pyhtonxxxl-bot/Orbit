@@ -32,9 +32,11 @@ export default function StudiesScreen() {
 
   if (!loaded) return <View style={styles.root} />;
 
+  // Wer schon eingerichtet hat und von der Übersicht kam, geht einfach zurück, statt eine zweite Übersicht anzulegen.
   const onConfirm = () => {
     confirmIntro();
-    router.replace(health.profile ? '/zyklus' : '/zyklus/plan');
+    if (health.profile && router.canGoBack()) router.back();
+    else router.replace(health.profile ? '/zyklus' : '/zyklus/plan');
   };
 
   // Die Bänder laufen von hell nach dunkel wie die Wochentage.
