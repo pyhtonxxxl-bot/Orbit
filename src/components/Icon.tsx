@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { useColors } from '../lib/theme';
 
@@ -7,6 +7,7 @@ export type IconName =
   | 'home'
   | 'habit'
   | 'todo'
+  | 'cycle'
   | 'training'
   | 'food'
   | 'menu'
@@ -50,6 +51,14 @@ export function Icon({ name, size = 20, color, strokeWidth = 1.75 }: Props) {
           <>
             <Path d="M3.5 6.5 5.3 8.3 8.5 5M3.5 12.5l1.8 1.8 3.2-3.3M12 6.5h8.5M12 12.5h8.5M12 18.5h8.5" {...stroke} />
             <Rect x={4} y={16.5} width={4} height={4} rx={1} {...stroke} />
+          </>
+        )}
+        {/* Health Zyklus: das Tagesrad, ein Bogen und ein Punkt darauf. */}
+        {name === 'cycle' && (
+          <>
+            <Path d="M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0Z" {...stroke} />
+            <Path d="M12 7.5a4.5 4.5 0 0 1 4.5 4.5" {...stroke} />
+            <Circle cx={12} cy={3.5} r={1.9} fill={color ?? colors.ink} />
           </>
         )}
         {name === 'training' && <Path d="M6.5 7.5v9M3.5 10v4M17.5 7.5v9M20.5 10v4M6.5 12h11" {...stroke} />}

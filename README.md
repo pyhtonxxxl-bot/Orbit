@@ -6,6 +6,7 @@ Eine minimalistische Life-Tracking-App fürs Handy **und** den PC, dein privater
 - **Startseite:** Begrüßung, dann dein Tag aufgeteilt in **Habits** (jeden Tag dasselbe abhaken) und **Todos** (Aufgaben für heute), darunter die kommenden Werkzeuge. Die Seitenleiste (am Handy über das Menü-Symbol) führt zu allen Seiten.
 - **Habits:** jeden Tag eine frische Liste mit Kästchen, aufgebaut wie die Todos. Welche Habits an welchen Wochentagen anstehen, legst du in den Einstellungen fest. Dazu die Serie („10 Tage in Folge“).
 - **Todos:** ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/), sieben gestapelte Tagesbänder von hell nach dunkel. Jede Aufgabe kann ein „Bis“-Datum (dann steht sie jeden Tag bis dahin drin, oder nur an den Tagen, die du im Mini-Kalender wählst), gearbeitete Stunden, einen Link und Tags haben.
+- **Health Zyklus:** feste Zeiten fürs Essen und Training, mit Studien begründet. Erst liest du, warum (kurz, in eigenen Worten, mit Links zu den Studien), dann gibst du Körper, Alltag, Gewohnheiten und Gesundheit an und drehst am **Tagesrad** deinen Schlaf, deine Mahlzeiten und dein Training zurecht. Orbit rechnet daraus Tagesbedarf, Eiweiß pro Mahlzeit, dein Leistungshoch und wie lange jede Muskelgruppe Erholung braucht (Superkompensation). Jeden Tag hakst du Mahlzeiten ab und trägst Trainings ein.
 - **Einstellungen:** Habits anlegen und festlegen, an welchen Tagen sie sich wiederholen; Tags (z. B. Schule) anlegen, umbenennen und löschen; die Darstellung zwischen Hell und Dunkel (schwarz/grau) umschalten.
 
 **Am PC** liegt die ganze Woche offen da, links der Tag, rechts die Aufgaben:
@@ -96,6 +97,8 @@ src/components/gate/       Sperrbildschirm und Wisch-Leiste zum Entsperren
 src/components/shell/      Seitenleiste, Schublade fürs Handy, Kopfzeile
 assets/lock/               Statuenkopf (Original und unscharfe Fassung, siehe scripts/make-lock-image.py)
 src/app/einstellungen.tsx  Einstellungen (Habits, Tags, Darstellung)
+src/app/zyklus/           Health Zyklus: Übersicht, Studien, Einrichten
+src/components/health/    Tagesrad, Erholungskurve, Formular-Bausteine
 src/components/            DayBand, TaskList, TaskItem, TaskPanel, DatePicker, HabitItem, Checkbox, WeekFooter
 src/lib/date.ts            Wochen- und Datumslogik (deutsch)
 src/lib/storage.ts         Lokales Speichern (gemeinsam für Todos und Habits)
@@ -103,6 +106,9 @@ src/lib/useTasks.ts        Todos (Bis, Tage, Stunden, Link, Tags)
 src/lib/useTags.ts         Tags
 src/lib/useTaskPanel.ts    Welche Aufgabe im Fenster offen ist
 src/lib/useHabits.ts       Habits und Serien
+src/lib/health.ts          Health Zyklus: alle Rechnungen (Bedarf, Zeiten, Erholung)
+src/lib/studies.ts         Studien-Texte und Quellen
+src/lib/useHealth.ts       Health Zyklus speichern
 src/lib/useLayout.ts       Handy- oder PC-Layout je nach Fensterbreite
 src/theme.ts               Farben (Hell und Dunkel), Schrift, Abstände (hier wird der Look justiert)
 src/lib/theme.tsx          Hell/Dunkel umschalten und merken

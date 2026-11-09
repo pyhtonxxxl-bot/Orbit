@@ -20,6 +20,8 @@ import { useTags } from '../lib/useTags';
 import { useTaskPanel } from '../lib/useTaskPanel';
 import { tasksOn, useTasks } from '../lib/useTasks';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
+import { useHealth } from '../lib/useHealth';
+import { formatClock, mealNames, mealTimes, minutesOf, nextMeal } from '../lib/health';
 import { enterActivates, heading } from '../lib/web';
 import { useColors } from '../lib/theme';
 import { CONTENT_MAX_WIDTH, COMPACT_MAX_WIDTH, fonts, space, themed } from '../theme';
@@ -46,10 +48,11 @@ export default function HomeScreen() {
   const tasks = useTasks();
   const habits = useHabits();
   const tags = useTags();
+  const health = useHealth();
   const { panel, task: panelTask, openNew, openTask, close, moveTo } = useTaskPanel(tasks.tasks);
   const keyboard = useKeyboardInset();
 
-  if (!tasks.loaded || !habits.loaded) return <View style={styles.root} />;
+  if (!tasks.loaded || !habits.loaded || !health.loaded) return <View style={styles.root} />;
 
   const todayKey = dateKey(now);
   const today = tasksOn(tasks.tasks, todayKey);
@@ -75,6 +78,17 @@ export default function HomeScreen() {
         : `Diese Woche ${weekOpen} ${weekOpen === 1 ? 'Todo' : 'Todos'} offen.`;
 
   const rowY = wide ? space.rowYWide : space.rowY;
+
+  // Health Zyklus: die nächste offene Mahlzeit, sonst eine kurze Beschreibung.
+  const cycle = health.health;
+  const cycleTimes = cycle.profile ? mealTimes(cycle.meals) : [];
+  const cycleNames = mealNames(cycleTimes);
+  const cycleEaten = cycle.eaten[todayKey] ?? {};
+  const upcoming = nextMeal(cycleTimes, cycleTimes.map((_, i) => !!cycleEaten[i]), minutesOf(now));
+  const cycleDescription =
+    !cycle.profile || !upcoming
+      ? 'Essen und Training im Rhythmus · mit Studien'
+      : `${upcoming.today ? '' : 'Morgen '}${cycleNames[upcoming.index]} um ${formatClock(cycleTimes[upcoming.index])}`;
 
   return (
     <View style={styles.root}>
@@ -166,10 +180,20 @@ export default function HomeScreen() {
         </DayBand>
 
         <ToolBand
+          name="Health Zyklus"
+          icon="cycle"
+          description={cycleDescription}
+          color={colors.days[3]}
+          wide={wide}
+          gutter={gutter}
+          canHover={canHover}
+          onPress={() => router.navigate('/zyklus')}
+        />
+        <ToolBand
           name="Training"
           icon="training"
           description="Trainingspläne · kommt bald"
-          color={colors.days[3]}
+          color={colors.days[4]}
           wide={wide}
           gutter={gutter}
           canHover={canHover}
@@ -178,7 +202,7 @@ export default function HomeScreen() {
           name="Ernährung"
           icon="food"
           description="Essen tracken · kommt bald"
-          color={colors.days[4]}
+          color={colors.days[5]}
           wide={wide}
           gutter={gutter}
           canHover={canHover}
