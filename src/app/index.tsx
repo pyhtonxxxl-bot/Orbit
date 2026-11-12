@@ -20,6 +20,7 @@ import { useTags } from '../lib/useTags';
 import { useTaskPanel } from '../lib/useTaskPanel';
 import { tasksOn, useTasks } from '../lib/useTasks';
 import { useKeyboardInset } from '../lib/useKeyboardInset';
+import { useCalendar } from '../lib/useCalendar';
 import { useHealth } from '../lib/useHealth';
 import { formatClock, mealNames, mealTimes, minutesOf, nextMeal } from '../lib/health';
 import { enterActivates, heading } from '../lib/web';
@@ -49,10 +50,11 @@ export default function HomeScreen() {
   const habits = useHabits();
   const tags = useTags();
   const health = useHealth();
+  const cal = useCalendar();
   const { panel, task: panelTask, openNew, openTask, close, moveTo } = useTaskPanel(tasks.tasks);
   const keyboard = useKeyboardInset();
 
-  if (!tasks.loaded || !habits.loaded || !health.loaded) return <View style={styles.root} />;
+  if (!tasks.loaded || !habits.loaded || !health.loaded || !cal.loaded) return <View style={styles.root} />;
 
   const todayKey = dateKey(now);
   const today = tasksOn(tasks.tasks, todayKey);
@@ -180,10 +182,24 @@ export default function HomeScreen() {
         </DayBand>
 
         <ToolBand
+          name="Kalender"
+          icon="calendar"
+          description={
+            cal.calendar.suggestions.length
+              ? `${cal.calendar.suggestions.length} ${cal.calendar.suggestions.length === 1 ? 'Vorschlag' : 'Vorschläge'} aus deinem Kalender`
+              : 'Termine in Todos und Habits verwandeln'
+          }
+          color={colors.days[3]}
+          wide={wide}
+          gutter={gutter}
+          canHover={canHover}
+          onPress={() => router.navigate('/kalender')}
+        />
+        <ToolBand
           name="Health Zyklus"
           icon="cycle"
           description={cycleDescription}
-          color={colors.days[3]}
+          color={colors.days[4]}
           wide={wide}
           gutter={gutter}
           canHover={canHover}
@@ -193,7 +209,7 @@ export default function HomeScreen() {
           name="Training"
           icon="training"
           description="Trainingspläne · kommt bald"
-          color={colors.days[4]}
+          color={colors.days[5]}
           wide={wide}
           gutter={gutter}
           canHover={canHover}
@@ -202,7 +218,7 @@ export default function HomeScreen() {
           name="Ernährung"
           icon="food"
           description="Essen tracken · kommt bald"
-          color={colors.days[5]}
+          color={colors.days[6]}
           wide={wide}
           gutter={gutter}
           canHover={canHover}
