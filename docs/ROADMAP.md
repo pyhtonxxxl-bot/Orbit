@@ -54,6 +54,7 @@
 2. **Training**: Pläne anlegen, Übungen per Drag & Drop sortieren, im Workout Sätze abhaken (gleiche Checkbox wie im Planer). Ein Workout trägt sich automatisch im Health Zyklus ein (`useHealth().addSession` mit Muskelgruppen und Intensität), dann stimmt die Erholung je Muskelgruppe von selbst.
 3. **Essen**: Mahlzeiten pro Tag, Suche via Open Food Facts, Barcode-Scan, Tagesziel als dünner Balken. Das Tagesziel und die Mahlzeiten kommen aus dem Health Zyklus (`targets()`, `mealTimes()` in `src/lib/health.ts`), gegessen wird in die Mahlzeit des Plans eingetragen.
 4. **Reanimated** (schon installiert) für weichere Animationen und Swipe zwischen Wochen
+5. **Kalender weiter:** Termine auch in der Handy-App (Development Build mit `expo-auth-session`), Todos zurück in den Google Kalender schreiben, Vorschläge automatisch einmal am Tag
 5. **Health Zyklus weiter:** Erinnerungen zu den Essenszeiten (`expo-notifications`), Wochenansicht des Rhythmus, auf Wunsch echte KI-Auswertung (braucht einen Server, damit kein Schlüssel in der App steckt)
 6. **SQLite** statt AsyncStorage, sobald die Datenmenge wächst
 7. **EAS Build → TestFlight** fürs iPhone, **GitHub Pages / Vercel** für eine PC-Version ohne Installation

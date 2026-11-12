@@ -6,6 +6,7 @@ Eine minimalistische Life-Tracking-App fürs Handy **und** den PC, dein privater
 - **Startseite:** Begrüßung, dann dein Tag aufgeteilt in **Habits** (jeden Tag dasselbe abhaken) und **Todos** (Aufgaben für heute), darunter die kommenden Werkzeuge. Die Seitenleiste (am Handy über das Menü-Symbol) führt zu allen Seiten.
 - **Habits:** jeden Tag eine frische Liste mit Kästchen, aufgebaut wie die Todos. Welche Habits an welchen Wochentagen anstehen, legst du in den Einstellungen fest. Dazu die Serie („10 Tage in Folge“).
 - **Todos:** ein Wochen-Planer im Stil von [weekstack.io](https://weekstack.io/), sieben gestapelte Tagesbänder von hell nach dunkel. Jede Aufgabe kann ein „Bis“-Datum (dann steht sie jeden Tag bis dahin drin, oder nur an den Tagen, die du im Mini-Kalender wählst), gearbeitete Stunden, einen Link und Tags haben.
+- **Kalender:** verbindet deinen Google Kalender. Orbit schlägt aus deinen Terminen Todos und Habits vor (Lernen ab ein paar Tagen vor einer Klausur, Training als Habit, Termine zum Nicht-Vergessen). Du übernimmst jeden Vorschlag einzeln, änderst Titel oder Wochentage oder ignorierst ihn. Auf Wunsch macht Claude die Vorschläge (mit deinem eigenen Anthropic-Schlüssel), sonst rechnet Orbit nach Regeln auf dem Gerät.
 - **Health Zyklus:** feste Zeiten fürs Essen und Training, mit Studien begründet. Erst liest du, warum (kurz, in eigenen Worten, mit Links zu den Studien), dann gibst du Körper, Alltag, Gewohnheiten und Gesundheit an und drehst am **Tagesrad** deinen Schlaf, deine Mahlzeiten und dein Training zurecht. Orbit rechnet daraus Tagesbedarf, Eiweiß pro Mahlzeit, dein Leistungshoch und wie lange jede Muskelgruppe Erholung braucht (Superkompensation). Jeden Tag hakst du Mahlzeiten ab und trägst Trainings ein.
 - **Einstellungen:** Habits anlegen und festlegen, an welchen Tagen sie sich wiederholen; Tags (z. B. Schule) anlegen, umbenennen und löschen; die Darstellung zwischen Hell und Dunkel (schwarz/grau) umschalten.
 
@@ -97,6 +98,7 @@ src/components/gate/       Sperrbildschirm und Wisch-Leiste zum Entsperren
 src/components/shell/      Seitenleiste, Schublade fürs Handy, Kopfzeile
 assets/lock/               Statuenkopf (Original und unscharfe Fassung, siehe scripts/make-lock-image.py)
 src/app/einstellungen.tsx  Einstellungen (Habits, Tags, Darstellung)
+src/app/kalender.tsx       Kalender: verbinden, Vorschläge prüfen, KI
 src/app/zyklus/           Health Zyklus: Übersicht, Studien, Einrichten
 src/components/health/    Tagesrad, Erholungskurve, Formular-Bausteine
 src/components/            DayBand, TaskList, TaskItem, TaskPanel, DatePicker, HabitItem, Checkbox, WeekFooter
@@ -106,6 +108,9 @@ src/lib/useTasks.ts        Todos (Bis, Tage, Stunden, Link, Tags)
 src/lib/useTags.ts         Tags
 src/lib/useTaskPanel.ts    Welche Aufgabe im Fenster offen ist
 src/lib/useHabits.ts       Habits und Serien
+src/lib/calendar.ts        Kalender: Termine und Vorschläge nach Regeln
+src/lib/google.ts          Google Kalender lesen (nur im Browser)
+src/lib/ai.ts              Vorschläge mit Claude
 src/lib/health.ts          Health Zyklus: alle Rechnungen (Bedarf, Zeiten, Erholung)
 src/lib/studies.ts         Studien-Texte und Quellen
 src/lib/useHealth.ts       Health Zyklus speichern
@@ -114,5 +119,19 @@ src/theme.ts               Farben (Hell und Dunkel), Schrift, Abstände (hier wi
 src/lib/theme.tsx          Hell/Dunkel umschalten und merken
 public/index.html          HTML-Hülle für den Browser
 ```
+
+## Google Kalender verbinden
+
+Orbit hat keinen eigenen Server. Deshalb braucht es einmal einen eigenen Google-Zugang (OAuth-Client-ID), etwa 10 Minuten:
+
+1. In der [Google Cloud Console](https://console.cloud.google.com/projectcreate) ein Projekt anlegen, z. B. „Orbit“.
+2. Die [Google Calendar API](https://console.cloud.google.com/apis/library/calendar-json.googleapis.com) aktivieren.
+3. Den [OAuth-Zustimmungsbildschirm](https://console.cloud.google.com/apis/credentials/consent) einrichten: Typ „Extern“, App-Name „Orbit“, deine E-Mail. Unter „Testnutzer“ deine eigene Google-Adresse eintragen. Die App kann im Testmodus bleiben, dann kann sich nur anmelden, wen du dort einträgst.
+4. Unter [Anmeldedaten](https://console.cloud.google.com/apis/credentials) eine „OAuth-Client-ID“ vom Typ „Webanwendung“ erstellen. Bei „Autorisierte JavaScript-Quellen“ `https://orbit-e610.onrender.com` eintragen (zum Testen am Rechner zusätzlich `http://localhost:8081`).
+5. Die Client-ID (endet auf `.apps.googleusercontent.com`) in Orbit unter **Kalender → Einrichten** einfügen. Oder als Umgebungsvariable `EXPO_PUBLIC_GOOGLE_CLIENT_ID` bei Render eintragen, dann gilt sie auf jedem Gerät.
+
+Orbit fragt nur Lese-Zugriff an und speichert den Google-Zugang nicht. Verbinden geht im Browser (auch am Handy unter orbit-e610.onrender.com).
+
+**KI-Vorschläge (optional):** Unter **Kalender → Mit KI** einen eigenen API-Schlüssel aus der [Anthropic Console](https://console.anthropic.com/settings/keys) eintragen. Er bleibt nur auf deinem Gerät. An Claude gehen nur Titel, Tag und Uhrzeit der Termine. Jeder Durchlauf kostet über dein Anthropic-Konto wenige Cent.
 
 Was als Nächstes kommt und welche Skills du dafür brauchst, steht in [docs/ROADMAP.md](docs/ROADMAP.md).

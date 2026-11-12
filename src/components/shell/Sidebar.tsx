@@ -9,7 +9,7 @@ import { useColors } from '../../lib/theme';
 import { fonts, themed } from '../../theme';
 import { Icon, type IconName } from '../Icon';
 
-type Href = '/' | '/habits' | '/todos' | '/zyklus' | '/einstellungen';
+type Href = '/' | '/habits' | '/todos' | '/kalender' | '/zyklus' | '/einstellungen';
 type Item = { label: string; icon: IconName; href?: Href; soon?: boolean };
 
 // Startseite zuerst, dann die Werkzeuge. Was „bald“ ist, steht schon da, ist aber noch nicht klickbar.
@@ -17,6 +17,7 @@ const MAIN: Item[] = [{ label: 'Startseite', icon: 'home', href: '/' }];
 const TOOLS: Item[] = [
   { label: 'Habits', icon: 'habit', href: '/habits' },
   { label: 'Todos', icon: 'todo', href: '/todos' },
+  { label: 'Kalender', icon: 'calendar', href: '/kalender' },
   { label: 'Health Zyklus', icon: 'cycle', href: '/zyklus' },
   { label: 'Training', icon: 'training', soon: true },
   { label: 'Ernährung', icon: 'food', soon: true },

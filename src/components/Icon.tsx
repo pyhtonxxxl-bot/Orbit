@@ -8,6 +8,7 @@ export type IconName =
   | 'habit'
   | 'todo'
   | 'cycle'
+  | 'calendar'
   | 'training'
   | 'food'
   | 'menu'
@@ -59,6 +60,13 @@ export function Icon({ name, size = 20, color, strokeWidth = 1.75 }: Props) {
             <Path d="M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0Z" {...stroke} />
             <Path d="M12 7.5a4.5 4.5 0 0 1 4.5 4.5" {...stroke} />
             <Circle cx={12} cy={3.5} r={1.9} fill={color ?? colors.ink} />
+          </>
+        )}
+        {/* Kalender: Blatt mit zwei Ringen oben. */}
+        {name === 'calendar' && (
+          <>
+            <Rect x={3.5} y={5} width={17} height={15.5} rx={2.5} {...stroke} />
+            <Path d="M3.5 10h17M8 3v4M16 3v4" {...stroke} />
           </>
         )}
         {name === 'training' && <Path d="M6.5 7.5v9M3.5 10v4M17.5 7.5v9M20.5 10v4M6.5 12h11" {...stroke} />}
